@@ -97,6 +97,7 @@ export class Screens {
       this.onMute(this.muted)
     })
     this.select.querySelector('#btn-fight')!.addEventListener('click', () => {
+      this.hideAll()
       this.onSelect(this.selected)
     })
     this.select.querySelector('#btn-back')!.addEventListener('click', () => {
@@ -104,6 +105,7 @@ export class Screens {
       this.menu.classList.remove('hidden')
     })
     this.results.querySelector('#btn-again')!.addEventListener('click', () => {
+      this.hideAll()
       this.onRestart()
     })
     this.results.querySelector('#btn-home')!.addEventListener('click', () => {
@@ -121,6 +123,12 @@ export class Screens {
     this.onMenu = fn
   }
   onMute = (_muted: boolean): void => {}
+
+  hideAll(): void {
+    this.menu.classList.add('hidden')
+    this.select.classList.add('hidden')
+    this.results.classList.add('hidden')
+  }
 
   showMenu(): void {
     this.results.classList.add('hidden')
