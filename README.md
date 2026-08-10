@@ -4,9 +4,7 @@ A mobile-first, twin-stick arena brawler for the browser. Move with your left th
 
 ## Play
 
-**Live demo:** https://<your-username>.github.io/splash/
-
-(Update the link above once the repo is on GitHub — Pages auto-deploys from the `main` branch.)
+**Live demo:** https://danse.github.io/splash/
 
 ## Controls
 
@@ -39,4 +37,4 @@ Pushing to `main` triggers `.github/workflows/deploy.yml`, which runs the tests,
 
 1. Create the repo and push this project to `main`
 2. In **Settings → Pages**, set the source to **GitHub Actions**
-3. Update the demo link in this README to `https://<your-username>.github.io/<repo>/`
+3. The demo is live at `https://danse.github.io/splash/`
