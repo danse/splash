@@ -322,7 +322,6 @@ export class Game {
     this.fx.muzzle(mx, my, b.aimAngle, def.color)
     if (b.isPlayer) {
       sfx.shoot()
-      this.camera.shake(0.06)
     } else {
       sfx.shoot(this.bots.indexOf(b) % 3)
     }
@@ -352,7 +351,6 @@ export class Game {
           )
         }
         this.fx.explosion(b.pos.x + Math.cos(b.aimAngle) * b.r, b.pos.y + Math.sin(b.aimAngle) * b.r, def.accent)
-        this.camera.shake(0.4)
         break
       }
       case 'boulder': {
@@ -370,12 +368,10 @@ export class Game {
             5,
           ),
         )
-        this.camera.shake(0.5)
         this.fx.ring(b.pos.x, b.pos.y, def.accent, 90)
         break
       }
       case 'dash':
-        this.camera.shake(0.35)
         this.fx.ring(b.pos.x, b.pos.y, def.accent, 60)
         break
     }
@@ -434,7 +430,6 @@ export class Game {
     target.pos.y += Math.sin(dir) * 14
     if (p.owner.isPlayer || target.isPlayer) {
       sfx.hit()
-      this.camera.shake(0.12)
     }
     this.fx.hitSpark(target.pos.x, target.pos.y, p.color)
     this.fx.floatText(
@@ -462,7 +457,6 @@ export class Game {
           target.pos.y += Math.sin(dir) * 60
           this.fx.explosion(target.pos.x, target.pos.y, b.def.accent)
           this.fx.floatText(target.pos.x, target.pos.y - target.r, `${Math.round(b.def.superDamage)}`, '#ffd23f', 30)
-          this.camera.shake(0.25)
           sfx.dashHit()
           if (target === this.player || b.isPlayer) sfx.hit()
         }
@@ -506,7 +500,6 @@ export class Game {
       if (b.alive || b.deadProcessed) continue
       b.deadProcessed = true
       this.fx.explosion(b.pos.x, b.pos.y, b.def.color)
-      this.camera.shake(0.35)
 
       const killer = b.lastHitBy && b.lastHitBy !== b && b.lastHitBy.alive ? b.lastHitBy : null
       if (killer) {
@@ -525,7 +518,6 @@ export class Game {
 
       if (b.isPlayer) {
         sfx.death()
-        this.camera.shake(0.6)
       } else {
         this.hud.setBots(this.bots.filter((x) => x.alive).length)
       }
@@ -562,7 +554,7 @@ export class Game {
     ctx.fillRect(0, 0, w, h)
 
     ctx.save()
-    ctx.translate(w / 2 + this.camera.shakeX, h / 2 + this.camera.shakeY)
+    ctx.translate(w / 2, h / 2)
     ctx.scale(this.camera.scale, this.camera.scale)
     ctx.translate(-this.camera.snapX(dpr), -this.camera.snapY(dpr))
 

@@ -36,41 +36,6 @@ describe('Camera clamp', () => {
   })
 })
 
-describe('Camera shake', () => {
-  it('is zero when trauma is zero', () => {
-    const cam = new Camera()
-    expect(cam.shakeX).toBe(0)
-    expect(cam.shakeY).toBe(0)
-  })
-
-  it('zeroes out below the dead zone', () => {
-    const cam = new Camera()
-    cam.shake(0.005)
-    cam.update(1 / 60)
-    expect(cam.traumaLevel()).toBe(0)
-    expect(cam.shakeX).toBe(0)
-    expect(cam.shakeY).toBe(0)
-  })
-
-  it('stays within the expected amplitude', () => {
-    const cam = new Camera()
-    cam.shake(1)
-    cam.update(1 / 60)
-    expect(Math.abs(cam.shakeX)).toBeLessThanOrEqual(26)
-    expect(Math.abs(cam.shakeY)).toBeLessThanOrEqual(26)
-  })
-
-  it('is smooth across frames (no white-noise jumps)', () => {
-    const cam = new Camera()
-    cam.shake(1)
-    cam.update(1 / 60)
-    const a = cam.shakeX
-    cam.update(1 / 60)
-    const b = cam.shakeX
-    expect(Math.abs(b - a)).toBeLessThan(20)
-  })
-})
-
 describe('Camera pixel snap', () => {
   it('snaps the horizontal camera offset to device pixels', () => {
     const cam = new Camera()
