@@ -79,10 +79,11 @@ describe('BotBrain', () => {
     expect(Math.hypot(ctrl.moveX, ctrl.moveY)).toBeCloseTo(1, 3)
   })
 
-  it('aims at the nearest enemy', () => {
+  it('aims at the nearest enemy (within wobble inaccuracy)', () => {
     const near = new Brawler(BRAWLER_DEFS.tank, bot.pos.x + 200, bot.pos.y)
     const far = new Brawler(BRAWLER_DEFS.blaster, bot.pos.x + 2000, bot.pos.y + 2000)
     const ctrl = brain.think(bot, [near, far], walls(), 1 / 60, 0)
-    expect(ctrl.aimAngle).toBeCloseTo(0, 1)
+    expect(ctrl.aimAngle).toBeGreaterThanOrEqual(-0.1)
+    expect(ctrl.aimAngle).toBeLessThanOrEqual(0.1)
   })
 })
