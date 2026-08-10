@@ -472,7 +472,6 @@ body {
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(2px);
   z-index: 15;
   pointer-events: none;
   transition: opacity 0.15s ease;
@@ -488,6 +487,7 @@ body {
   transform: translate(-50%, -50%);
   background: radial-gradient(circle at 35% 30%, #ffffff 0%, #c9d6f5 100%);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  will-change: transform;
 }
 
 .joy-base.aim {

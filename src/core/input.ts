@@ -195,14 +195,36 @@ export class Input {
     base.classList.add('hidden')
   }
 
+  private paintQueued = false
+  private paintMove: Stick | null = null
+  private paintAim: Stick | null = null
+
   private paintStick(stick: Stick): void {
+    if (stick === this.state.move) this.paintMove = stick
+    else this.paintAim = stick
+    if (this.paintQueued) return
+    this.paintQueued = true
+    requestAnimationFrame(() => {
+      this.paintQueued = false
+      const move = this.paintMove
+      const aim = this.paintAim
+      this.paintMove = null
+      this.paintAim = null
+      if (move) this.applyPaint(move)
+      if (aim) this.applyPaint(aim)
+    })
+  }
+
+  private applyPaint(stick: Stick): void {
+    if (!stick.active) return
     const base = stick === this.state.move ? this.moveBase : this.aimBase
     base.classList.remove('hidden')
     base.style.left = `${stick.ox - 64}px`
     base.style.top = `${stick.oy - 64}px`
     const knob = stick === this.state.move ? this.moveKnob : this.aimKnob
-    knob.style.left = `${50 + (stick.dx / MAX_REACH) * 50}%`
-    knob.style.top = `${50 + (stick.dy / MAX_REACH) * 50}%`
+    const kx = (stick.dx / MAX_REACH) * 64
+    const ky = (stick.dy / MAX_REACH) * 64
+    knob.style.transform = `translate3d(calc(-50% + ${kx}px), calc(-50% + ${ky}px), 0)`
   }
 
   moveVec(): { x: number; y: number; mag: number } {

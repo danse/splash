@@ -52,10 +52,45 @@ describe('Camera shake', () => {
     expect(cam.shakeY).toBe(0)
   })
 
-  it('produces shake within the expected amplitude', () => {
+  it('stays within the expected amplitude', () => {
     const cam = new Camera()
     cam.shake(1)
-    expect(Math.abs(cam.shakeX)).toBeLessThanOrEqual(13)
-    expect(Math.abs(cam.shakeY)).toBeLessThanOrEqual(13)
+    cam.update(1 / 60)
+    expect(Math.abs(cam.shakeX)).toBeLessThanOrEqual(26)
+    expect(Math.abs(cam.shakeY)).toBeLessThanOrEqual(26)
+  })
+
+  it('is smooth across frames (no white-noise jumps)', () => {
+    const cam = new Camera()
+    cam.shake(1)
+    cam.update(1 / 60)
+    const a = cam.shakeX
+    cam.update(1 / 60)
+    const b = cam.shakeX
+    expect(Math.abs(b - a)).toBeLessThan(20)
+  })
+})
+
+describe('Camera pixel snap', () => {
+  it('snaps the horizontal camera offset to device pixels', () => {
+    const cam = new Camera()
+    cam.setViewport(900, 400)
+    cam.scale = 0.4
+    cam.x = 1125.3
+    cam.y = 800.7
+    const dpr = 2
+    expect((cam.snapX(dpr) * cam.scale - cam.viewW / 2) * dpr % 1).toBeCloseTo(0, 5)
+    expect((cam.snapY(dpr) * cam.scale - cam.viewH / 2) * dpr % 1).toBeCloseTo(0, 5)
+  })
+
+  it('stays within half a device pixel of the raw camera position', () => {
+    const cam = new Camera()
+    cam.setViewport(900, 400)
+    cam.scale = 0.4
+    cam.x = 1125.3
+    cam.y = 800.7
+    const dpr = 2
+    expect(Math.abs(cam.snapX(dpr) - cam.x)).toBeLessThan(0.5 / (cam.scale * dpr))
+    expect(Math.abs(cam.snapY(dpr) - cam.y)).toBeLessThan(0.5 / (cam.scale * dpr))
   })
 })

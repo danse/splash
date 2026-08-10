@@ -564,7 +564,7 @@ export class Game {
     ctx.save()
     ctx.translate(w / 2 + this.camera.shakeX, h / 2 + this.camera.shakeY)
     ctx.scale(this.camera.scale, this.camera.scale)
-    ctx.translate(-this.camera.x, -this.camera.y)
+    ctx.translate(-this.camera.snapX(dpr), -this.camera.snapY(dpr))
 
     drawArena(ctx, this.arena, false)
 
