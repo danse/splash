@@ -12,6 +12,7 @@ import { drawArena, drawBushes, drawBrawler, drawProjectile, drawPickup, inBush 
 import { Hud } from './ui/hud'
 import { sfx, initAudio } from './audio'
 import { dist2, rand, TAU } from './core/math'
+import { EndGate } from './core/endGate'
 
 export interface MatchResult {
   won: boolean
@@ -37,8 +38,11 @@ export class Game {
   private time = 0
   private countdown = 3.4
   private phase: Phase = 'countdown'
-  private endTimer = 0
+  private endGate = new EndGate(1.8)
   private lastAim = 0
+  private viewW = 0
+  private viewH = 0
+  private dpr = 1
   private powerUntil = new Map<Brawler, number>()
   onEnd: ((r: MatchResult) => void) | null = null
 
@@ -70,6 +74,10 @@ export class Game {
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     const w = window.innerWidth
     const h = window.innerHeight
+    if (Math.abs(w - this.viewW) < 2 && Math.abs(h - this.viewH) < 2 && dpr === this.dpr) return
+    this.dpr = dpr
+    this.viewW = w
+    this.viewH = h
     this.canvas.width = Math.floor(w * dpr)
     this.canvas.height = Math.floor(h * dpr)
     this.canvas.style.width = `${w}px`
@@ -90,7 +98,7 @@ export class Game {
     this.time = 0
     this.countdown = 3.4
     this.phase = 'countdown'
-    this.endTimer = 0
+    this.endGate.reset()
 
     const def = BRAWLER_DEFS[brawlerId]
     const spawns = this.arena.spawnPoints
@@ -165,14 +173,11 @@ export class Game {
       this.updateHud()
 
       const botsLeft = this.bots.filter((b) => b.alive).length
-      if (!this.player.alive && this.endTimer === 0) {
-        this.endTimer = 1.8
+      if (!this.player.alive) {
         this.phase = 'ended'
-      } else if (botsLeft === 0 && this.endTimer === 0) {
-        this.endTimer = 1.8
+      } else if (botsLeft === 0) {
         this.phase = 'ended'
-      } else if (this.time >= MATCH_DURATION && this.endTimer === 0) {
-        this.endTimer = 1.8
+      } else if (this.time >= MATCH_DURATION) {
         this.phase = 'ended'
       }
     }
@@ -180,12 +185,10 @@ export class Game {
     if (this.phase === 'ended') {
       this.fx.update(dt)
       this.camera.update(dt)
-      this.endTimer -= dt
-      if (this.endTimer <= 0 && this.onEnd) {
+      if (this.endGate.tick(dt) && this.onEnd) {
         const botsLeft = this.bots.filter((b) => b.alive).length
         const botBest = this.bots.reduce((m, b) => Math.max(m, b.kills), 0)
         const won = this.player.alive && this.player.kills >= botBest
-        this.phase = 'ended'
         const r: MatchResult = {
           won,
           kills: this.player.kills,
@@ -542,18 +545,18 @@ export class Game {
   }
 
   private worldToScreenX(wx: number): number {
-    return (wx - this.camera.x) * this.camera.scale + window.innerWidth / 2
+    return (wx - this.camera.x) * this.camera.scale + this.viewW / 2
   }
 
   private worldToScreenY(wy: number): number {
-    return (wy - this.camera.y) * this.camera.scale + window.innerHeight / 2
+    return (wy - this.camera.y) * this.camera.scale + this.viewH / 2
   }
 
   private render(): void {
     const ctx = this.ctx
-    const w = window.innerWidth
-    const h = window.innerHeight
-    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    const w = this.viewW
+    const h = this.viewH
+    const dpr = this.dpr
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.fillStyle = '#0d1220'
     ctx.fillRect(0, 0, w, h)
