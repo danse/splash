@@ -15,9 +15,6 @@ export interface Stick {
 export interface InputState {
   move: Stick
   aim: Stick
-  fireHeld: boolean
-  mouse: { x: number; y: number }
-  keys: Record<string, boolean>
 }
 
 const DEADZONE = 8
@@ -39,9 +36,6 @@ export class Input {
   state: InputState = {
     move: emptyStick(),
     aim: emptyStick(),
-    fireHeld: false,
-    mouse: { x: 0, y: 0 },
-    keys: {},
   }
 
   private el: HTMLDivElement
@@ -50,8 +44,6 @@ export class Input {
   private aimBase: HTMLDivElement
   private aimKnob!: HTMLDivElement
   private superQueued = false
-  private touchMode = false
-  private hasPointer = false
 
   constructor() {
     this.el = document.getElementById('app') as HTMLDivElement
@@ -63,8 +55,6 @@ export class Input {
     window.addEventListener('pointermove', this.onPointerMove)
     window.addEventListener('pointerup', this.onPointerUp)
     window.addEventListener('pointercancel', this.onPointerUp)
-    window.addEventListener('keydown', this.onKeyDown)
-    window.addEventListener('keyup', this.onKeyUp)
     window.addEventListener('contextmenu', (e) => e.preventDefault())
   }
 
@@ -81,22 +71,9 @@ export class Input {
   }
 
   private onPointerDown = (e: PointerEvent): void => {
-    if (e.pointerType === 'touch') this.touchMode = true
-    if (!this.hasPointer) {
-      this.hasPointer = true
-      this.el.style.cursor = 'none'
-    }
     const id = e.pointerId
     const x = e.clientX
     const y = e.clientY
-
-    if (e.pointerType === 'mouse') {
-      this.state.mouse.x = x
-      this.state.mouse.y = y
-      if (e.button === 0) this.state.fireHeld = true
-      if (e.button === 2) this.superQueued = true
-      return
-    }
 
     const stick = this.stickForTouch(x)
     if (!stick) return
@@ -105,8 +82,6 @@ export class Input {
   }
 
   private onPointerMove = (e: PointerEvent): void => {
-    this.state.mouse.x = e.clientX
-    this.state.mouse.y = e.clientY
     const id = e.pointerId
     const stick = this.stickById(id)
     if (!stick) return
@@ -114,25 +89,9 @@ export class Input {
   }
 
   private onPointerUp = (e: PointerEvent): void => {
-    if (e.pointerType === 'mouse') {
-      if (e.button === 0) this.state.fireHeld = false
-      return
-    }
     const stick = this.stickById(e.pointerId)
     if (!stick) return
     this.releaseStick(stick)
-  }
-
-  private onKeyDown = (e: KeyboardEvent): void => {
-    this.state.keys[e.code] = true
-    if (e.code === 'Space') {
-      this.superQueued = true
-      e.preventDefault()
-    }
-  }
-
-  private onKeyUp = (e: KeyboardEvent): void => {
-    this.state.keys[e.code] = false
   }
 
   private stickForTouch(x: number): Stick | null {
@@ -228,29 +187,13 @@ export class Input {
   }
 
   moveVec(): { x: number; y: number; mag: number } {
-    const keys = this.state.keys
-    let x = 0
-    let y = 0
-    if (keys['KeyW'] || keys['ArrowUp']) y -= 1
-    if (keys['KeyS'] || keys['ArrowDown']) y += 1
-    if (keys['KeyA'] || keys['ArrowLeft']) x -= 1
-    if (keys['KeyD'] || keys['ArrowRight']) x += 1
-    const len = Math.hypot(x, y)
-    if (len > 0) {
-      x /= len
-      y /= len
-    }
     if (this.state.move.active && this.state.move.mag > 0) {
       const mag = this.state.move.mag
       const mx = (this.state.move.dx / MAX_REACH) * mag
       const my = (this.state.move.dy / MAX_REACH) * mag
       return { x: mx, y: my, mag }
     }
-    return { x, y, mag: len }
-  }
-
-  isTouchMode(): boolean {
-    return this.touchMode
+    return { x: 0, y: 0, mag: 0 }
   }
 
   queueSuper(): void {

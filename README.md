@@ -1,18 +1,21 @@
 # SPLASH — Arena Brawler
 
-A mobile-first, twin-stick arena brawler for the browser. Move with your left thumb, aim and fire with your right. Fight a squad of AI bots, grab power-ups, and charge your super.
+A touch-only, twin-stick arena brawler for the browser. Move with your left thumb, aim and fire with your right. Fight a squad of AI bots, grab power-ups, and charge your super.
 
 ## Play
 
 **Live demo:** https://danse.github.io/splash/
 
+Requires a touch screen device — a message is shown on desktop. Play in landscape; a prompt appears if you rotate to portrait.
+
 ## Controls
 
-| Action | Touch | Desktop |
-| --- | --- | --- |
-| Move | Left virtual joystick | WASD / arrow keys |
-| Aim & fire | Right virtual joystick | Mouse + hold left click |
-| Super | ★ button (bottom-right) | Space or right click |
+| Action | Touch |
+| --- | --- |
+| Move | Left virtual joystick |
+| Aim | Right virtual joystick (aim while holding) |
+| Fire | Release the right joystick |
+| Super | ★ button (bottom-right) |
 
 ## Development
 
@@ -26,7 +29,7 @@ npm run build     # type-check + production build to dist/
 ## How it works
 
 - **Stack:** TypeScript + Vite, Canvas 2D renderer, Web Audio API for synthesized SFX
-- **Multitouch:** Pointer Events with per-`pointerId` tracking and `touch-action: none` (works on iOS Safari 13+ and Android)
+- **Touch input:** Pointer Events with per-`pointerId` tracking and `touch-action: none` (works on iOS Safari 13+ and Android); mouse and keyboard are not supported
 - **Entities:** 3 brawler archetypes (Blaster, Charger, Tank), bots with AI state machines, projectiles with pierce/knockback, pickup respawns
 - **Arena:** seeded procedural generation of walls and hiding bushes
 - **Tests:** Vitest suites covering math, collision, arena generation, brawler mechanics, bot AI, and input

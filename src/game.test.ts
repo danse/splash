@@ -2,7 +2,6 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import { Game, MatchResult } from './game'
 import { Camera } from './core/camera'
-import { Input } from './core/input'
 
 function stubCtx(): CanvasRenderingContext2D {
   const target: Record<string, unknown> = {}
@@ -59,18 +58,6 @@ function touchMove(x: number, y: number, id = 1): void {
 
 function touchUp(id = 1): void {
   window.dispatchEvent(makePointerEvent('pointerup', { pointerId: id, pointerType: 'touch' }))
-}
-
-function mouseMove(x: number, y: number): void {
-  window.dispatchEvent(makePointerEvent('pointermove', { clientX: x, clientY: y, pointerType: 'mouse' }))
-}
-
-function mouseDown(x: number, y: number): void {
-  window.dispatchEvent(makePointerEvent('pointerdown', { clientX: x, clientY: y, pointerType: 'mouse', button: 0 }))
-}
-
-function mouseUp(): void {
-  window.dispatchEvent(makePointerEvent('pointerup', { pointerType: 'mouse', button: 0 }))
 }
 
 beforeEach(() => {
@@ -217,7 +204,7 @@ function startPlaying(): { game: Game; update: (dt: number) => void } {
   vi.spyOn(Math, 'random').mockReturnValue(0.5)
   const { game, update } = makeGame()
   game.startMatch('blaster', 'practice')
-  setViewport(390, 844, 2)
+  setViewport(844, 390, 2)
   for (let i = 0; i < 300; i++) update(1 / 60)
   return { game, update }
 }
@@ -225,8 +212,8 @@ function startPlaying(): { game: Game; update: (dt: number) => void } {
 describe('Player stays on camera', () => {
   it('stays fully visible while walking to the bottom of the world', () => {
     const { game, update } = startPlaying()
-    const input = (game as unknown as { input: Input }).input
-    input.state.keys['KeyS'] = true
+    touchDown(200, 195, 1)
+    touchMove(200, 257, 1)
     const cam = (game as unknown as { camera: Camera }).camera
     for (let i = 0; i < 600; i++) {
       update(1 / 60)
@@ -238,8 +225,8 @@ describe('Player stays on camera', () => {
 
   it('stays fully visible while walking to the top of the world', () => {
     const { game, update } = startPlaying()
-    const input = (game as unknown as { input: Input }).input
-    input.state.keys['KeyW'] = true
+    touchDown(200, 195, 1)
+    touchMove(200, 133, 1)
     const cam = (game as unknown as { camera: Camera }).camera
     for (let i = 0; i < 600; i++) {
       update(1 / 60)
@@ -268,29 +255,7 @@ describe('Player stays on camera', () => {
 })
 
 describe('Player aims and fires on release', () => {
-  it('shows aiming while held and fires exactly once on release (mouse)', () => {
-    const { game, update } = makeGame()
-    game.startMatch('blaster', 'practice')
-    for (let i = 0; i < 210; i++) update(1 / 60)
-    const player = game.player
-
-    mouseMove(600, 400)
-    mouseDown(600, 400)
-    update(1 / 60)
-    expect(player.aiming).toBe(true)
-    expect(player.fireCd).toBe(0)
-
-    for (let i = 0; i < 10; i++) update(1 / 60)
-    expect(player.aiming).toBe(true)
-    expect(player.fireCd).toBe(0)
-
-    mouseUp()
-    update(1 / 60)
-    expect(player.aiming).toBe(false)
-    expect(player.fireCd).toBeCloseTo(1 / 2.6, 5)
-  })
-
-  it('aims with the stick and fires on release (touch)', () => {
+  it('aims while held and fires exactly once on release', () => {
     const { game, update } = makeGame()
     game.startMatch('blaster', 'practice')
     for (let i = 0; i < 210; i++) update(1 / 60)
@@ -302,21 +267,25 @@ describe('Player aims and fires on release', () => {
     expect(player.aiming).toBe(true)
     expect(player.fireCd).toBe(0)
 
+    for (let i = 0; i < 10; i++) update(1 / 60)
+    expect(player.aiming).toBe(true)
+    expect(player.fireCd).toBe(0)
+
     touchUp(2)
     update(1 / 60)
     expect(player.aiming).toBe(false)
     expect(player.fireCd).toBeCloseTo(1 / 2.6, 5)
   })
 
-  it('does not fire when the button is released during the countdown', () => {
+  it('does not fire when the stick is released during the countdown', () => {
     const { game, update } = makeGame()
     game.startMatch('blaster', 'practice')
     const projectiles = (game as unknown as { projectiles: unknown[] }).projectiles
 
-    mouseMove(600, 400)
-    mouseDown(600, 400)
+    touchDown(800, 500, 2)
+    touchMove(850, 560, 2)
     update(1 / 60)
-    mouseUp()
+    touchUp(2)
     update(1 / 60)
     expect(projectiles.length).toBe(0)
   })

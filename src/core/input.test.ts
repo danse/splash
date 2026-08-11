@@ -96,34 +96,9 @@ describe('Input multitouch', () => {
   })
 })
 
-describe('Input desktop', () => {
-  it('sets fireHeld on left mouse down and clears on up', () => {
-    window.dispatchEvent(
-      makePointerEvent('pointerdown', { pointerType: 'mouse', button: 0, clientX: 500, clientY: 300 }),
-    )
-    expect(input.state.fireHeld).toBe(true)
-    window.dispatchEvent(makePointerEvent('pointerup', { pointerType: 'mouse', button: 0 }))
-    expect(input.state.fireHeld).toBe(false)
-  })
-
-  it('queues super on right mouse down', () => {
-    window.dispatchEvent(
-      makePointerEvent('pointerdown', { pointerType: 'mouse', button: 2, clientX: 500, clientY: 300 }),
-    )
-    expect(input.consumeSuper()).toBe(true)
-  })
-
-  it('moveVec reads WASD keys', () => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyD' }))
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS' }))
-    const v = input.moveVec()
-    expect(v.x).toBeGreaterThan(0)
-    expect(v.y).toBeGreaterThan(0)
-    expect(Math.hypot(v.x, v.y)).toBeCloseTo(1, 5)
-  })
-
-  it('queues super on Space', () => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }))
+describe('Input super', () => {
+  it('queues and consumes the super exactly once', () => {
+    input.queueSuper()
     expect(input.consumeSuper()).toBe(true)
     expect(input.consumeSuper()).toBe(false)
   })

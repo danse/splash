@@ -323,20 +323,13 @@ export class Game {
     }
     const mv = this.input.moveVec()
     const stick = this.input.state.aim
-    const touch = this.input.isTouchMode()
-    const fireHeld = touch ? stick.active : this.input.state.fireHeld
+    const fireHeld = stick.active
     const released = !fireHeld && this.fireHeldPrev
     this.fireHeldPrev = fireHeld
 
     let aim = this.lastAim
-    if (touch) {
-      if (stick.active && stick.mag > 0.18) {
-        aim = Math.atan2(stick.dy, stick.dx)
-      }
-    } else if (fireHeld) {
-      const sx = this.worldToScreenX(p.pos.x)
-      const sy = this.worldToScreenY(p.pos.y)
-      aim = Math.atan2(this.input.state.mouse.y - sy, this.input.state.mouse.x - sx)
+    if (stick.active && stick.mag > 0.18) {
+      aim = Math.atan2(stick.dy, stick.dx)
     }
     this.lastAim = aim
 
@@ -721,14 +714,6 @@ export class Game {
       maxDelta: this.camDeltas.length ? Math.max(...this.camDeltas) : 0,
     }
     this.debug.update(info)
-  }
-
-  private worldToScreenX(wx: number): number {
-    return (wx - this.camera.x) * this.camera.scale + this.viewW / 2
-  }
-
-  private worldToScreenY(wy: number): number {
-    return (wy - this.camera.y) * this.camera.scale + this.viewH / 2
   }
 
   private render(): void {
