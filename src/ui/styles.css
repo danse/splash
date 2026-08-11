@@ -87,9 +87,9 @@ body {
 .btn {
   pointer-events: auto;
   border: none;
-  border-radius: 14px;
-  padding: 16px 44px;
-  font-size: clamp(16px, 4.4vw, 22px);
+  border-radius: 12px;
+  padding: 12px 30px;
+  font-size: clamp(14px, 3.6vw, 18px);
   font-weight: 800;
   color: #fff;
   background: linear-gradient(180deg, #ffb45e 0%, #ff7a3f 100%);
@@ -112,6 +112,17 @@ body {
 
 .btn.ghost:active {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn.icon {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 20px;
 }
 
 .btn:disabled {
@@ -346,14 +357,14 @@ body {
 .super-btn {
   position: absolute;
   right: 14px;
-  bottom: calc(84px + env(safe-area-inset-bottom));
-  width: 78px;
-  height: 78px;
+  bottom: calc(58px + env(safe-area-inset-bottom));
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.18);
+  border: 2.5px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 157, 63, 0.14);
   color: rgba(255, 255, 255, 0.4);
-  font-size: 34px;
+  font-size: 26px;
   line-height: 1;
   pointer-events: auto;
   touch-action: none;

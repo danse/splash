@@ -65,3 +65,38 @@ export function lockLandscape(): void {
     /* orientation lock unsupported */
   }
 }
+
+type FullscreenEl = HTMLElement & { webkitRequestFullscreen?: () => void }
+type FullscreenDoc = Document & { webkitExitFullscreen?: () => void }
+
+export function isFullscreen(): boolean {
+  return !!(
+    document.fullscreenElement ||
+    (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+  )
+}
+
+export async function requestFullscreen(): Promise<void> {
+  try {
+    const el = document.documentElement as FullscreenEl
+    if (el.requestFullscreen) await el.requestFullscreen()
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen()
+  } catch {
+    /* fullscreen blocked / unsupported */
+  }
+}
+
+export async function exitFullscreen(): Promise<void> {
+  try {
+    const doc = document as FullscreenDoc
+    if (doc.exitFullscreen) await doc.exitFullscreen()
+    else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen()
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function toggleFullscreen(): Promise<void> {
+  if (isFullscreen()) await exitFullscreen()
+  else await requestFullscreen()
+}

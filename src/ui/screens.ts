@@ -20,6 +20,7 @@ export class Screens {
   private onMenu!: () => void
   private mutedBtn: HTMLElement
   private muted = false
+  onFullscreen = (): void => {}
   selected: string = 'blaster'
 
   constructor() {
@@ -32,7 +33,8 @@ export class Screens {
       <p class="tagline">Twin-stick arena brawl. Move with your left thumb, aim &amp; fire with your right.</p>
       <div class="row">
         <button class="btn" id="btn-play">▶ Play</button>
-        <button class="btn ghost" id="btn-mute">🔊</button>
+        <button class="btn ghost icon" id="btn-mute">🔊</button>
+        <button class="btn ghost icon" id="btn-fs">⛶</button>
       </div>
     `
     app.appendChild(this.menu)
@@ -97,6 +99,9 @@ export class Screens {
       this.muted = !this.muted
       this.mutedBtn.textContent = this.muted ? '🔇' : '🔊'
       this.onMute(this.muted)
+    })
+    this.menu.querySelector('#btn-fs')!.addEventListener('click', () => {
+      this.onFullscreen()
     })
     this.select.querySelector('#btn-fight')!.addEventListener('click', () => {
       this.hideAll()

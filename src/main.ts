@@ -1,7 +1,7 @@
 import { Game, type ModeId } from './game'
 import { Screens } from './ui/screens'
 import { setMuted } from './audio'
-import { initDeviceGate, isTouchDevice, lockLandscape } from './device'
+import { initDeviceGate, isTouchDevice, lockLandscape, requestFullscreen, toggleFullscreen } from './device'
 
 const app = document.getElementById('app')!
 
@@ -19,7 +19,14 @@ if (isTouchDevice()) {
   const game = new Game()
   const screens = new Screens()
 
-  window.addEventListener('pointerdown', () => lockLandscape(), { once: true })
+  window.addEventListener('pointerdown', () => {
+    lockLandscape()
+    void requestFullscreen()
+  }, { once: true })
+
+  screens.onFullscreen = () => {
+    void toggleFullscreen()
+  }
 
   let lastBrawlerId = 'blaster'
   let lastMode: ModeId = 'brawl'
