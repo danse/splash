@@ -11,6 +11,7 @@ import { sfx, initAudio } from './audio'
 import { TAU } from './core/math'
 import { DebugOverlay, isDebug, type DebugInfo } from './debug'
 import { Simulation, SimPhase } from './sim/simulation'
+import { DIFFICULTIES, type DifficultyId } from './entities/difficulty'
 
 export interface MatchResult {
   won: boolean
@@ -169,9 +170,10 @@ export class Game {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   }
 
-  startMatch(brawlerId: string, modeId: ModeId = 'brawl'): void {
+  startMatch(brawlerId: string, modeId: ModeId = 'brawl', difficulty: DifficultyId = 'hard'): void {
     initAudio()
     this.mode = MODES[modeId]
+    const brainOpts = modeId === 'practice' ? {} : DIFFICULTIES[difficulty].brain
     this.goAnnounced = false
     this.sim = new Simulation(Math.floor(Math.random() * 1e9), {
       attackers: this.mode.attackers,
@@ -200,7 +202,7 @@ export class Game {
         x = p.pos.x - (cx / cl) * 260
         y = p.pos.y - (cy / cl) * 260
       }
-      this.sim.addBot(randomBrawlerId(), x, y)
+      this.sim.addBot(randomBrawlerId(), x, y, brainOpts)
     }
     this.sim.addDefaultPickups()
 

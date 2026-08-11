@@ -125,6 +125,31 @@ body {
   font-size: 20px;
 }
 
+.btn.diff {
+  padding: 10px 22px;
+  font-size: clamp(13px, 3.2vw, 16px);
+}
+
+.btn.diff.selected {
+  background: linear-gradient(180deg, #ffb45e 0%, #ff7a3f 100%);
+  box-shadow: 0 4px 0 #a8401f, 0 10px 24px rgba(255, 122, 63, 0.35);
+  color: #fff;
+}
+
+.diff-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #8fa3c8;
+  align-self: center;
+}
+
+.diff-btns {
+  display: flex;
+  gap: 8px;
+}
+
 .btn:disabled {
   opacity: 0.45;
   pointer-events: none;

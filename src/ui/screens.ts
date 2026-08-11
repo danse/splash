@@ -1,4 +1,5 @@
 import { BRAWLER_DEFS, BrawlerDef } from '../entities/brawler'
+import { DIFFICULTIES, DEFAULT_DIFFICULTY, type DifficultyId } from '../entities/difficulty'
 
 export interface MatchResult {
   won: boolean
@@ -14,14 +15,15 @@ export class Screens {
   private results: HTMLElement
   private resultsTitle: HTMLElement
   private resultsStats: HTMLElement
-  private onSelect!: (id: string) => void
-  private onPractice!: (id: string) => void
+  private onSelect!: (id: string, difficulty: DifficultyId) => void
+  private onPractice!: (id: string, difficulty: DifficultyId) => void
   private onRestart!: () => void
   private onMenu!: () => void
   private mutedBtn: HTMLElement
   private muted = false
   onFullscreen = (): void => {}
   selected: string = 'blaster'
+  difficulty: DifficultyId = DEFAULT_DIFFICULTY
 
   constructor() {
     const app = document.getElementById('app')!
@@ -44,6 +46,10 @@ export class Screens {
     this.select.innerHTML = `
       <h1 style="font-size:clamp(30px,8vw,48px)">Pick your brawler</h1>
       <div class="brawler-grid" id="brawler-grid"></div>
+      <div class="row">
+        <span class="diff-label">Bot difficulty</span>
+        <span class="diff-btns" id="diff-row"></span>
+      </div>
       <div class="row">
         <button class="btn" id="btn-fight">⚔ Brawl</button>
         <button class="btn ghost" id="btn-practice">🎯 Practice</button>
@@ -91,6 +97,21 @@ export class Screens {
     })
     ;(this.select.querySelector('.brawler-card') as HTMLElement).classList.add('selected')
 
+    const diffRow = this.select.querySelector('#diff-row')!
+    const diffBtns: HTMLElement[] = []
+    for (const d of Object.values(DIFFICULTIES)) {
+      const b = document.createElement('button')
+      b.className = `btn ghost diff${d.id === this.difficulty ? ' selected' : ''}`
+      b.dataset.diff = d.id
+      b.textContent = d.label
+      b.addEventListener('click', () => {
+        this.difficulty = d.id
+        for (const other of diffBtns) other.classList.toggle('selected', other === b)
+      })
+      diffBtns.push(b)
+      diffRow.appendChild(b)
+    }
+
     this.menu.querySelector('#btn-play')!.addEventListener('click', () => {
       this.menu.classList.add('hidden')
       this.select.classList.remove('hidden')
@@ -105,11 +126,11 @@ export class Screens {
     })
     this.select.querySelector('#btn-fight')!.addEventListener('click', () => {
       this.hideAll()
-      this.onSelect(this.selected)
+      this.onSelect(this.selected, this.difficulty)
     })
     this.select.querySelector('#btn-practice')!.addEventListener('click', () => {
       this.hideAll()
-      this.onPractice(this.selected)
+      this.onPractice(this.selected, this.difficulty)
     })
     this.select.querySelector('#btn-back')!.addEventListener('click', () => {
       this.select.classList.add('hidden')
@@ -124,10 +145,10 @@ export class Screens {
     })
   }
 
-  onSelectCb = (fn: (id: string) => void): void => {
+  onSelectCb = (fn: (id: string, difficulty: DifficultyId) => void): void => {
     this.onSelect = fn
   }
-  onPracticeCb = (fn: (id: string) => void): void => {
+  onPracticeCb = (fn: (id: string, difficulty: DifficultyId) => void): void => {
     this.onPractice = fn
   }
   onRestartCb = (fn: () => void): void => {

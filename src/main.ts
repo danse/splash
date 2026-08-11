@@ -2,6 +2,7 @@ import { Game, type ModeId } from './game'
 import { Screens } from './ui/screens'
 import { setMuted } from './audio'
 import { initDeviceGate, isTouchDevice, lockLandscape, requestFullscreen, toggleFullscreen } from './device'
+import { DEFAULT_DIFFICULTY, type DifficultyId } from './entities/difficulty'
 
 const app = document.getElementById('app')!
 
@@ -30,13 +31,15 @@ if (isTouchDevice()) {
 
   let lastBrawlerId = 'blaster'
   let lastMode: ModeId = 'brawl'
+  let lastDifficulty: DifficultyId = DEFAULT_DIFFICULTY
 
   screens.onMute = (m) => setMuted(m)
-  screens.onSelectCb((id) => {
+  screens.onSelectCb((id, difficulty) => {
     lastBrawlerId = id
     lastMode = 'brawl'
+    lastDifficulty = difficulty
     game.start()
-    game.startMatch(id, 'brawl')
+    game.startMatch(id, 'brawl', difficulty)
   })
   screens.onPracticeCb((id) => {
     lastBrawlerId = id
@@ -46,7 +49,7 @@ if (isTouchDevice()) {
   })
   screens.onRestartCb(() => {
     game.start()
-    game.startMatch(lastBrawlerId, lastMode)
+    game.startMatch(lastBrawlerId, lastMode, lastDifficulty)
   })
   screens.onMenuCb(() => {
     screens.showMenu()

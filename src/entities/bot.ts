@@ -13,6 +13,12 @@ export interface BrainOpts {
   noSuper?: boolean
   noRetreat?: boolean
   perfectAim?: boolean
+  aimWobble?: number
+  aimJitter?: [number, number]
+  speedMult?: number
+  burstOn?: number
+  burstOff?: number
+  engageDelay?: number
 }
 
 export class BotBrain {
@@ -25,11 +31,16 @@ export class BotBrain {
   private rngB = Math.random()
   private nextJitter = 0
   private opts: BrainOpts
+  private burstTimer = 0
+  private burstFiring = true
+  private engageTimer = 0
 
   constructor(x: number, y: number, opts: BrainOpts = {}) {
     this.wanderTarget.x = x
     this.wanderTarget.y = y
     this.opts = opts
+    this.burstTimer = opts.burstOn ?? Infinity
+    this.engageTimer = opts.engageDelay ?? 0
   }
 
   think(
@@ -41,7 +52,9 @@ export class BotBrain {
   ): BrawlerControl {
     let target: Brawler | null = null
     let best = Infinity
-    if (this.preferredTarget && this.preferredTarget.alive) {
+    if (this.engageTimer > 0) {
+      this.engageTimer -= dt
+    } else if (this.preferredTarget && this.preferredTarget.alive) {
       target = this.preferredTarget
     } else {
       for (const b of all) {
@@ -86,8 +99,8 @@ export class BotBrain {
       if (!this.opts.perfectAim) {
         this.nextJitter -= dt
         if (this.nextJitter <= 0) {
-          this.wobble = rand(-0.09, 0.09)
-          this.nextJitter = rand(0.12, 0.3)
+          this.wobble = rand(-(this.opts.aimWobble ?? 0.09), this.opts.aimWobble ?? 0.09)
+          this.nextJitter = rand(this.opts.aimJitter?.[0] ?? 0.12, this.opts.aimJitter?.[1] ?? 0.3)
         }
       }
       aimAngle = Math.atan2(dy, dx) + (this.opts.perfectAim ? 0 : this.wobble)
@@ -112,7 +125,12 @@ export class BotBrain {
 
       const inRange = d < atkRange * 0.9
       const cooldownReady = self.fireCd <= 0
-      if (inRange && cooldownReady) firing = true
+      this.burstTimer -= dt
+      if (this.burstTimer <= 0) {
+        this.burstFiring = !this.burstFiring
+        this.burstTimer = this.burstFiring ? (this.opts.burstOn ?? Infinity) : (this.opts.burstOff ?? 0)
+      }
+      if (inRange && cooldownReady && this.burstFiring) firing = true
 
       if (!this.opts.noSuper && self.superReady) {
         if (myDef.superType === 'dash' && d < 320) superQueued = true
@@ -140,7 +158,10 @@ export class BotBrain {
       moveX /= len
       moveY /= len
     }
-    const mag = Math.min(1, len)
+    const mult = this.opts.speedMult ?? 1
+    moveX *= mult
+    moveY *= mult
+    const mag = Math.min(1, len * mult)
 
     const dirX = moveX
     const dirY = moveY
