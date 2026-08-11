@@ -33,5 +33,10 @@ lerna-debug.log*
 # Coverage
 coverage/
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # TypeScript
 *.tsbuildinfo

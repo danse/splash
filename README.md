@@ -24,8 +24,21 @@ Requires a touch screen device — a message is shown on desktop. Play in landsc
 npm install
 npm run dev       # start dev server (reachable from phone on LAN)
 npm test          # run unit tests
+npm run test:e2e  # run headless-browser rendering tests (Playwright, 1280x720 reference size)
 npm run build     # type-check + production build to dist/
 ```
+
+## Rendering tests
+
+Playwright runs the real game in headless Chromium at a fixed reference size (1280×720 touch). It boots the app, verifies layout geometry (canvas fills the viewport, super button is exactly 56px, no element overlap), and checks pixel-perfect screenshots of the menu and brawler-select screens against stored baselines.
+
+To re-baseline the golden screenshots after an intentional visual change:
+
+```bash
+npx playwright test --update-snapshots
+```
+
+Then review the diff via `npx playwright test` (failures show pixel diffs in `test-results/`). The project has one reference size; add more viewport sizes as extra projects in `playwright.config.ts`.
 
 ## How it works
 
