@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "icons": "node scripts/make-icons.mjs",
     "balance": "vite-node scripts/balance.ts"
   },
   "devDependencies": {
