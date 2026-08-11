@@ -168,6 +168,6 @@ export class Screens {
 
 function statLine(def: BrawlerDef): string {
   if (def.superType === 'dash') return 'Fast · Short range · Dash super'
-  if (def.superType === 'boulder') return 'Tanky · Heavy shots · Boulder super'
+  if (def.superType === 'boulder') return 'Tanky · Close-combat swings · Boulder super'
   return 'Balanced · Long range · Storm super'
 }

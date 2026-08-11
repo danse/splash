@@ -77,6 +77,10 @@ export const sfx = {
     tone(700 + colorIdx * 120, 0.12, 'triangle', 0.18, 220)
     noise(0.05, 0.08, 3000, 800)
   },
+  swing(colorIdx = 0): void {
+    noise(0.14, 0.2, 2000 + colorIdx * 300, 500)
+    tone(320 + colorIdx * 50, 0.16, 'square', 0.14, 140)
+  },
   super(colorIdx = 0): void {
     tone(320 + colorIdx * 60, 0.4, 'sawtooth', 0.3, 90)
     noise(0.35, 0.3, 2000, 200)

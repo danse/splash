@@ -3,7 +3,7 @@ import { Brawler } from './entities/brawler'
 import { Projectile } from './entities/projectile'
 import { Pickup } from './entities/pickup'
 import { Rect } from './world/collision'
-import { TAU } from './core/math'
+import { TAU, easeOutCubic } from './core/math'
 
 export interface RenderOpts {
   walls: Rect[]
@@ -114,6 +114,44 @@ export function inBush(brawler: Brawler, arena: Arena): boolean {
   return false
 }
 
+export function drawMeleeSwing(ctx: CanvasRenderingContext2D, b: Brawler): void {
+  const def = b.def
+  const arc = def.meleeArc ?? 1.9
+  const reach = def.meleeRange ?? 120
+  const t = 1 - b.swingT
+  const eased = easeOutCubic(t)
+  const startAng = b.aimAngle - arc / 2
+  const ang = startAng + eased * arc
+  const fade = 1 - t
+
+  ctx.save()
+  ctx.translate(b.pos.x, b.pos.y)
+
+  ctx.globalAlpha = 0.18 * fade
+  ctx.fillStyle = def.accent
+  ctx.beginPath()
+  ctx.moveTo(0, 0)
+  ctx.arc(0, 0, reach, startAng, ang)
+  ctx.closePath()
+  ctx.fill()
+
+  ctx.globalAlpha = fade
+  ctx.strokeStyle = def.accent
+  ctx.lineWidth = 9
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(Math.cos(startAng) * b.r * 0.4, Math.sin(startAng) * b.r * 0.4)
+  ctx.lineTo(Math.cos(ang) * reach, Math.sin(ang) * reach)
+  ctx.stroke()
+
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(Math.cos(ang) * reach, Math.sin(ang) * reach, 5.5, 0, TAU)
+  ctx.fill()
+
+  ctx.restore()
+}
+
 export function drawBrawler(
   ctx: CanvasRenderingContext2D,
   b: Brawler,
@@ -148,21 +186,9 @@ export function drawBrawler(
     ctx.fill()
   }
 
-  const weaponLen = b.r + 14
-  const wx = Math.cos(b.facing) * weaponLen
-  const wy = Math.sin(b.facing) * weaponLen
-  ctx.strokeStyle = b.def.accent
-  ctx.lineWidth = 8
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  ctx.moveTo(Math.cos(b.facing) * b.r * 0.4, Math.sin(b.facing) * b.r * 0.4)
-  ctx.lineTo(wx, wy)
-  ctx.stroke()
-
-  ctx.fillStyle = b.def.accent
-  ctx.beginPath()
-  ctx.arc(wx, wy, 5, 0, TAU)
-  ctx.fill()
+  if (b.def.melee && b.swingT > 0) {
+    drawMeleeSwing(ctx, b)
+  }
 
   ctx.fillStyle = 'rgba(0,0,0,0.55)'
   ctx.beginPath()

@@ -406,7 +406,8 @@ export class Game {
         this.doSupers(b)
       }
       if (b.wantsFireThisFrame()) {
-        this.doFire(b)
+        if (b.def.melee) this.doMelee(b)
+        else this.doFire(b)
       }
     }
   }
@@ -441,6 +442,52 @@ export class Game {
     } else {
       sfx.shoot(this.bots.indexOf(b) % 3)
     }
+  }
+
+  private doMelee(b: Brawler): void {
+    const def = b.def
+    const powered = this.isPowered(b)
+    const dmg = def.damage * (powered ? 1.35 : 1)
+    const range = def.meleeRange ?? 120
+    const arc = def.meleeArc ?? 1.9
+
+    for (const target of this.brawlers) {
+      if (target === b || !target.alive) continue
+      const dx = target.pos.x - b.pos.x
+      const dy = target.pos.y - b.pos.y
+      const d = Math.hypot(dx, dy)
+      if (d > range + target.r) continue
+      let diff = Math.atan2(dy, dx) - b.aimAngle
+      while (diff > Math.PI) diff -= TAU
+      while (diff < -Math.PI) diff += TAU
+      if (Math.abs(diff) <= arc / 2) {
+        this.applyMeleeHit(b, target, dmg)
+      }
+    }
+
+    if (b.isPlayer) sfx.swing()
+    else sfx.swing(this.bots.indexOf(b) % 3)
+  }
+
+  private applyMeleeHit(attacker: Brawler, target: Brawler, dmg: number): void {
+    target.takeDamage(dmg)
+    target.lastHitBy = attacker
+    attacker.chargeSuper(dmg * attacker.def.superChargePerHit)
+
+    const dir = Math.atan2(target.pos.y - attacker.pos.y, target.pos.x - attacker.pos.x)
+    target.pos.x += Math.cos(dir) * 18
+    target.pos.y += Math.sin(dir) * 18
+    this.keepInArena(target)
+    if (attacker.isPlayer || target.isPlayer) sfx.hit()
+    this.fx.hitSpark(target.pos.x, target.pos.y, attacker.def.accent)
+    this.fx.floatText(
+      target.pos.x + rand(-12, 12),
+      target.pos.y - target.r - 14,
+      `${Math.round(dmg)}`,
+      attacker.isPlayer ? '#ffd86b' : '#ff8a6b',
+      attacker.isPlayer ? 26 : 20,
+    )
+    if (target.isPlayer) sfx.hurt()
   }
 
   private doSupers(b: Brawler): void {

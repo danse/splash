@@ -18,6 +18,9 @@ export interface BrawlerDef {
   projectileSize: number
   bulletCount: number
   spread: number
+  melee?: boolean
+  meleeRange?: number
+  meleeArc?: number
   superType: SuperType
   superDamage: number
   superChargePerHit: number
@@ -80,6 +83,9 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     projectileSize: 18,
     bulletCount: 1,
     spread: 0,
+    melee: true,
+    meleeRange: 115,
+    meleeArc: 1.9,
     superType: 'boulder',
     superDamage: 1200,
     superChargePerHit: 0.11,
@@ -95,6 +101,8 @@ export interface DashState {
   duration: number
   hitIds: Set<Brawler>
 }
+
+export const SWING_DURATION = 0.4
 
 export interface BrawlerControl {
   moveX: number
@@ -128,6 +136,7 @@ export class Brawler {
   lastHitBy: Brawler | null = null
   deadProcessed = false
   aiming = false
+  swingT = 0
   private firePressed = false
 
   constructor(def: BrawlerDef, x: number, y: number) {
@@ -168,6 +177,7 @@ export class Brawler {
     this.flash = Math.max(0, this.flash - dt)
     this.fireCd = Math.max(0, this.fireCd - dt)
     this.superCd = Math.max(0, this.superCd - dt)
+    this.swingT = Math.max(0, this.swingT - dt / SWING_DURATION)
 
     this.aimAngle = ctrl.aimAngle
     this.facing = angleLerp(this.facing, this.aimAngle, 1 - Math.pow(0.0001, dt))
@@ -196,6 +206,7 @@ export class Brawler {
       this.firePressed = true
       this.fireCd = 1 / this.def.fireRate
     }
+    if (this.def.melee && this.firePressed) this.swingT = 1
   }
 
   triggerSuper(): void {

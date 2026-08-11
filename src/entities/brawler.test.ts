@@ -98,6 +98,16 @@ describe('Brawler firing', () => {
     c.update(1 / 60, idle({ firing: true }))
     expect(c.wantsFireThisFrame()).toBe(false)
   })
+
+  it('starts a swing animation when a melee brawler fires', () => {
+    const t = new Brawler(BRAWLER_DEFS.tank, 0, 0)
+    expect(t.swingT).toBe(0)
+    t.update(1 / 60, idle({ firing: true }))
+    expect(t.wantsFireThisFrame()).toBe(true)
+    expect(t.swingT).toBe(1)
+    t.update(1 / 60, idle())
+    expect(t.swingT).toBeLessThan(1)
+  })
 })
 
 describe('Brawler fire-on-release', () => {

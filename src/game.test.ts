@@ -321,6 +321,50 @@ describe('Player aims and fires on release', () => {
   })
 })
 
+describe('Tank melee attack', () => {
+  it('damages enemies inside the swing arc', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('tank', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    expect(player.alive).toBe(true)
+    const enemy = game.bots[0]
+    enemy.pos.x = player.pos.x + 90
+    enemy.pos.y = player.pos.y
+    const hpBefore = enemy.hp
+
+    touchDown(800, 500, 2)
+    touchMove(860, 500, 2)
+    update(1 / 60)
+    touchUp(2)
+    update(1 / 60)
+
+    expect(enemy.hp).toBeLessThan(hpBefore)
+    expect(player.swingT).toBe(1)
+  })
+
+  it('does not damage an enemy standing behind the swing arc', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('tank', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    const enemy = game.bots[0]
+    enemy.pos.x = player.pos.x - 90
+    enemy.pos.y = player.pos.y
+    const hpBefore = enemy.hp
+
+    touchDown(800, 500, 2)
+    touchMove(860, 500, 2)
+    update(1 / 60)
+    touchUp(2)
+    update(1 / 60)
+
+    expect(enemy.hp).toBe(hpBefore)
+  })
+})
+
 function setViewport(w: number, h: number, dpr = 1): void {
   Object.defineProperty(window, 'innerWidth', { value: w, configurable: true })
   Object.defineProperty(window, 'innerHeight', { value: h, configurable: true })

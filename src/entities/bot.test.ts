@@ -86,4 +86,22 @@ describe('BotBrain', () => {
     expect(ctrl.aimAngle).toBeGreaterThanOrEqual(-0.1)
     expect(ctrl.aimAngle).toBeLessThanOrEqual(0.1)
   })
+
+  it('a melee brawler approaches a distant enemy without firing', () => {
+    const tank = new Brawler(BRAWLER_DEFS.tank, 100, 100)
+    const tankBrain = new BotBrain(100, 100)
+    const enemy = new Brawler(BRAWLER_DEFS.blaster, 100 + 220, 100)
+    const ctrl = tankBrain.think(tank, [tank, enemy], walls(), 1 / 60, 0)
+    expect(ctrl.moveX).toBeGreaterThan(0.3)
+    expect(ctrl.firing).toBe(false)
+  })
+
+  it('a melee brawler swings once an enemy is within reach', () => {
+    const tank = new Brawler(BRAWLER_DEFS.tank, 100, 100)
+    tank.fireCd = 0
+    const tankBrain = new BotBrain(100, 100)
+    const enemy = new Brawler(BRAWLER_DEFS.blaster, 100 + 80, 100)
+    const ctrl = tankBrain.think(tank, [tank, enemy], walls(), 1 / 60, 0)
+    expect(ctrl.firing).toBe(true)
+  })
 })

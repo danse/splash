@@ -31,7 +31,7 @@ npm run build     # type-check + production build to dist/
 
 - **Stack:** TypeScript + Vite, Canvas 2D renderer, Web Audio API for synthesized SFX
 - **Touch input:** Pointer Events with per-`pointerId` tracking and `touch-action: none` (works on iOS Safari 13+ and Android); mouse and keyboard are not supported
-- **Entities:** 3 brawler archetypes (Blaster, Charger, Tank), bots with AI state machines, projectiles with pierce/knockback, pickup respawns
+- **Entities:** 3 brawler archetypes (Blaster, Charger, Tank), bots with AI state machines, projectiles with pierce/knockback, pickup respawns. The Tank is a close-combat brawler that swings its weapon in an arc instead of firing projectiles.
 - **Arena:** seeded procedural generation of walls and hiding bushes
 - **Tests:** Vitest suites covering math, collision, arena generation, brawler mechanics, bot AI, and input
 

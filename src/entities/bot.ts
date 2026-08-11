@@ -63,7 +63,8 @@ export class BotBrain {
     let aimAngle = self.facing
 
     const myDef = self.def
-    const desiredRange = myDef.superType === 'dash' ? 170 : 240
+    const atkRange = myDef.melee ? (myDef.meleeRange ?? 120) : myDef.projectileRange
+    const desiredRange = myDef.melee ? atkRange * 0.95 : myDef.superType === 'dash' ? 170 : 240
     const lowHp = self.hp / self.maxHp < 0.28
 
     if (target) {
@@ -90,7 +91,7 @@ export class BotBrain {
         radial = -0.5
       }
 
-      strafe = d < myDef.projectileRange * 0.8 ? 0.7 : 0.25
+      strafe = myDef.melee ? 0.3 : d < atkRange * 0.8 ? 0.7 : 0.25
 
       const side = (Math.sin(time * 0.7 + this.rngA * TAU) > 0 ? 1 : -1)
       const sx = -ny * side * strafe
@@ -98,7 +99,7 @@ export class BotBrain {
       moveX = nx * radial + sx
       moveY = ny * radial + sy
 
-      const inRange = d < myDef.projectileRange * 0.9
+      const inRange = d < atkRange * 0.9
       const cooldownReady = self.fireCd <= 0
       if (inRange && cooldownReady) firing = true
 
