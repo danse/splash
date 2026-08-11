@@ -27,6 +27,10 @@ export class Camera {
     if (bounds) this.bounds = bounds
   }
 
+  get targetPos(): { pos: { x: number; y: number } } | null {
+    return this.target
+  }
+
   update(dt: number): void {
     if (this.target) {
       const k = 1 - Math.pow(0.0015, dt)

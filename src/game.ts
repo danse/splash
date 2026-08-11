@@ -13,6 +13,7 @@ import { Hud } from './ui/hud'
 import { sfx, initAudio } from './audio'
 import { dist2, rand, TAU } from './core/math'
 import { EndGate } from './core/endGate'
+import { DebugOverlay, isDebug, type DebugInfo } from './debug'
 
 export interface MatchResult {
   won: boolean
@@ -89,6 +90,12 @@ export class Game {
   private respawnQueue = new Map<Brawler, { x: number; y: number; timer: number }>()
   private spawnPoints = new Map<Brawler, { x: number; y: number }>()
   private mode: GameMode = MODES.brawl
+  private debug: DebugOverlay | null = null
+  private prevCamX = 0
+  private camDeltas: number[] = []
+  private debugFpsTime = 0
+  private debugFpsSteps = 0
+  private debugFps = 0
   onEnd: ((r: MatchResult) => void) | null = null
   onExit: (() => void) | null = null
 
@@ -117,6 +124,8 @@ export class Game {
 
     this.loop = new GameLoop((dt) => this.update(dt))
     this.loop.start()
+
+    if (isDebug()) this.debug = new DebugOverlay()
   }
 
   start(): void {
@@ -221,6 +230,7 @@ export class Game {
   private update(dt: number): void {
     this.timeSinceTick += dt
     if (!this.arena) return
+    this.updateDebug()
 
     if (this.phase === 'countdown') {
       this.countdown -= dt
@@ -643,6 +653,61 @@ export class Game {
     const p = this.player
     this.hud.update(p.hp, p.maxHp, p.superCharge, p.superReady)
     this.hud.setTimer(this.mode.timer ? MATCH_DURATION - this.time : Infinity)
+  }
+
+  private updateDebug(): void {
+    if (!this.debug) return
+    const cam = this.camera
+    const delta = Math.abs(cam.x - this.prevCamX)
+    this.prevCamX = cam.x
+    this.camDeltas.push(delta)
+    if (this.camDeltas.length > 120) this.camDeltas.shift()
+
+    this.debugFpsSteps++
+    this.debugFpsTime += 1 / 120
+    if (this.debugFpsTime >= 0.5) {
+      this.debugFps = this.debugFpsSteps / this.debugFpsTime
+      this.debugFpsTime = 0
+      this.debugFpsSteps = 0
+    }
+
+    const arena = this.arena
+    const scale = cam.scale
+    const hw = cam.viewW / 2 / scale
+    const hh = cam.viewH / 2 / scale
+    const target = cam.targetPos
+    const info: DebugInfo = {
+      mode: this.mode.id,
+      phase: this.phase,
+      fps: this.debugFps,
+      camX: cam.x,
+      camY: cam.y,
+      camScale: scale,
+      viewW: cam.viewW,
+      viewH: cam.viewH,
+      dpr: this.dpr,
+      arenaW: arena.width,
+      arenaH: arena.height,
+      hw,
+      hh,
+      minX: hw,
+      maxX: arena.width - hw,
+      minY: hh,
+      maxY: arena.height - hh,
+      viewWider: hw > arena.width / 2,
+      viewTaller: hh > arena.height / 2,
+      playerX: this.player.pos.x,
+      playerY: this.player.pos.y,
+      targetX: target ? target.pos.x : NaN,
+      targetY: target ? target.pos.y : NaN,
+      wallLeft: (0 - cam.x) * scale + cam.viewW / 2,
+      wallRight: (arena.width - cam.x) * scale + cam.viewW / 2,
+      wallTop: (0 - cam.y) * scale + cam.viewH / 2,
+      wallBottom: (arena.height - cam.y) * scale + cam.viewH / 2,
+      flips: this.camDeltas.filter((d) => d > 50).length,
+      maxDelta: this.camDeltas.length ? Math.max(...this.camDeltas) : 0,
+    }
+    this.debug.update(info)
   }
 
   private worldToScreenX(wx: number): number {
