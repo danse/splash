@@ -11,7 +11,7 @@ import { resolveCircle, circleRectCollide } from './world/collision'
 import { drawArena, drawBushes, drawBrawler, drawProjectile, drawPickup, inBush } from './render'
 import { Hud } from './ui/hud'
 import { sfx, initAudio } from './audio'
-import { dist2, rand, TAU } from './core/math'
+import { dist2, clamp, rand, TAU } from './core/math'
 import { EndGate } from './core/endGate'
 import { DebugOverlay, isDebug, type DebugInfo } from './debug'
 
@@ -355,7 +355,6 @@ export class Game {
   private moveBrawlers(): void {
     for (const b of this.brawlers) {
       if (!b.alive && !b.dash.active) continue
-      resolveCircle(this.arena.walls, { x: b.pos.x, y: b.pos.y, r: b.r })
       for (const o of this.brawlers) {
         if (o === b || !o.alive) continue
         const dx = b.pos.x - o.pos.x
@@ -372,7 +371,15 @@ export class Game {
           o.pos.y -= dy * half
         }
       }
+      this.keepInArena(b)
     }
+  }
+
+  private keepInArena(b: Brawler): void {
+    const c = { x: b.pos.x, y: b.pos.y, r: b.r }
+    resolveCircle(this.arena.walls, c)
+    b.pos.x = clamp(c.x, b.r, this.arena.width - b.r)
+    b.pos.y = clamp(c.y, b.r, this.arena.height - b.r)
   }
 
   private fireLogic(): void {
@@ -521,6 +528,7 @@ export class Game {
     const dir = Math.atan2(p.vy, p.vx)
     target.pos.x += Math.cos(dir) * 14
     target.pos.y += Math.sin(dir) * 14
+    this.keepInArena(target)
     if (p.owner.isPlayer || target.isPlayer) {
       sfx.hit()
     }
@@ -548,6 +556,7 @@ export class Game {
           const dir = Math.atan2(target.pos.y - b.pos.y, target.pos.x - b.pos.x)
           target.pos.x += Math.cos(dir) * 60
           target.pos.y += Math.sin(dir) * 60
+          this.keepInArena(target)
           this.fx.explosion(target.pos.x, target.pos.y, b.def.accent)
           this.fx.floatText(target.pos.x, target.pos.y - target.r, `${Math.round(b.def.superDamage)}`, '#ffd23f', 30)
           sfx.dashHit()

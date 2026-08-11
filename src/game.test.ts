@@ -107,9 +107,16 @@ describe('Practice mode', () => {
   })
 
   it('the attacker bot stays still but fires at the player', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
     const { game, update } = makeGame()
     game.startMatch('blaster', 'practice')
     const attacker = game.bots[0]
+    const cx = game.arena.width / 2
+    const cy = game.arena.height / 2
+    game.player.pos.x = cx
+    game.player.pos.y = cy
+    attacker.pos.x = cx + 150
+    attacker.pos.y = cy
     let fired = false
     for (let i = 0; i < 60; i++) update(1 / 60)
     const sx = attacker.pos.x
@@ -135,6 +142,31 @@ describe('Practice mode', () => {
     exitBtn.click()
     expect(exited).toBe(true)
     expect(loop.running).toBe(false)
+  })
+
+  it('keeps the player inside the arena after a dash knockback at the top wall', () => {
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    ;(game as unknown as { phase: string }).phase = 'playing'
+    const player = game.player
+    player.pos.x = 1200
+    player.pos.y = player.r
+    const attacker = game.bots[0]
+    attacker.pos.x = 1200
+    attacker.pos.y = player.r + attacker.r + 5
+    attacker.def.superType = 'dash'
+    attacker.dash = {
+      active: true,
+      dirX: 0,
+      dirY: 1,
+      speed: 1300,
+      t: 0.34,
+      duration: 0.34,
+      hitIds: new Set(),
+    }
+    for (let i = 0; i < 60; i++) update(1 / 60)
+    expect(player.pos.y).toBeGreaterThanOrEqual(player.r - 0.5)
+    expect(player.pos.y).toBeLessThanOrEqual(game.arena.height - player.r + 0.5)
   })
 })
 
