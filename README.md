@@ -15,6 +15,7 @@ Requires a touch screen device — a message is shown on desktop. Play in landsc
 | Move | Left virtual joystick |
 | Aim | Right virtual joystick (aim while holding) |
 | Fire | Release the right joystick |
+| Auto-aim shot | Tap the right side (fires at the closest enemy) |
 | Super | ★ button (bottom-right) |
 
 ## Development

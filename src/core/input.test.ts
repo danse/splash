@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { Input } from './input'
 
 function makePointerEvent(type: string, props: Record<string, unknown>): Event {
@@ -101,5 +101,39 @@ describe('Input super', () => {
     input.queueSuper()
     expect(input.consumeSuper()).toBe(true)
     expect(input.consumeSuper()).toBe(false)
+  })
+})
+
+describe('Input aim tap', () => {
+  it('queues a tap when the aim stick is tapped without dragging', () => {
+    touchDown(800, 500, 2)
+    touchUp(2)
+    expect(input.consumeAimTap()).toBe(true)
+    expect(input.consumeAimTap()).toBe(false)
+  })
+
+  it('does not queue a tap after dragging the aim stick', () => {
+    touchDown(800, 500, 2)
+    touchMove(860, 560, 2)
+    touchUp(2)
+    expect(input.consumeAimTap()).toBe(false)
+  })
+
+  it('does not queue a tap when the stick is held past the tap window', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] })
+    try {
+      touchDown(800, 500, 2)
+      vi.advanceTimersByTime(300)
+      touchUp(2)
+      expect(input.consumeAimTap()).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not treat a move-stick tap as an aim tap', () => {
+    touchDown(200, 400, 1)
+    touchUp(1)
+    expect(input.consumeAimTap()).toBe(false)
   })
 })

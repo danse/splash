@@ -11,7 +11,7 @@ import { resolveCircle, circleRectCollide } from './world/collision'
 import { drawArena, drawBushes, drawBrawler, drawProjectile, drawPickup, drawAimPointer, inBush } from './render'
 import { Hud } from './ui/hud'
 import { sfx, initAudio } from './audio'
-import { dist2, clamp, rand, TAU } from './core/math'
+import { dist2, dist, clamp, rand, TAU } from './core/math'
 import { EndGate } from './core/endGate'
 import { DebugOverlay, isDebug, type DebugInfo } from './debug'
 
@@ -316,6 +316,7 @@ export class Game {
 
   private updatePlayer(dt: number): void {
     const p = this.player
+    const tap = this.input.consumeAimTap()
     if (!p.alive) {
       p.aiming = false
       p.update(dt, { moveX: 0, moveY: 0, moveMag: 0, aimAngle: p.facing, firing: false, superQueued: false })
@@ -331,10 +332,16 @@ export class Game {
     if (stick.active && stick.mag > 0.18) {
       aim = Math.atan2(stick.dy, stick.dx)
     }
+    if (tap && this.phase === 'playing') {
+      const target = this.closestEnemy(this.player)
+      if (target) {
+        aim = Math.atan2(target.pos.y - p.pos.y, target.pos.x - p.pos.x)
+      }
+    }
     this.lastAim = aim
 
     p.aiming = fireHeld
-    const fireOnce = released && this.phase === 'playing'
+    const fireOnce = (released || tap) && this.phase === 'playing'
     const superQueued = this.input.consumeSuper()
     p.update(dt, {
       moveX: mv.x,
@@ -345,6 +352,20 @@ export class Game {
       fireOnce,
       superQueued,
     })
+  }
+
+  private closestEnemy(from: Brawler): Brawler | null {
+    let best: Brawler | null = null
+    let bestD = Infinity
+    for (const b of this.brawlers) {
+      if (b === from || !b.alive) continue
+      const d = dist(from.pos.x, from.pos.y, b.pos.x, b.pos.y)
+      if (d < bestD) {
+        bestD = d
+        best = b
+      }
+    }
+    return best
   }
 
   private moveBrawlers(): void {

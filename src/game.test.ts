@@ -2,6 +2,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import { Game, MatchResult } from './game'
 import { Camera } from './core/camera'
+import type { Brawler } from './entities/brawler'
 
 function stubCtx(): CanvasRenderingContext2D {
   const target: Record<string, unknown> = {}
@@ -288,6 +289,35 @@ describe('Player aims and fires on release', () => {
     touchUp(2)
     update(1 / 60)
     expect(projectiles.length).toBe(0)
+  })
+
+  it('a quick tap aims at and fires at the closest enemy', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    expect(player.alive).toBe(true)
+
+    let closest: Brawler | null = null
+    let bestD = Infinity
+    for (const b of game.brawlers) {
+      if (b === player || !b.alive) continue
+      const d = Math.hypot(b.pos.x - player.pos.x, b.pos.y - player.pos.y)
+      if (d < bestD) {
+        bestD = d
+        closest = b
+      }
+    }
+    expect(closest).not.toBeNull()
+
+    touchDown(800, 500, 2)
+    touchUp(2)
+    update(1 / 60)
+
+    const expected = Math.atan2(closest!.pos.y - player.pos.y, closest!.pos.x - player.pos.x)
+    expect(player.aimAngle).toBeCloseTo(expected, 2)
+    expect(player.fireCd).toBeCloseTo(1 / 2.6, 5)
   })
 })
 

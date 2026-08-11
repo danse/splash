@@ -19,6 +19,7 @@ export interface InputState {
 
 const DEADZONE = 8
 const MAX_REACH = 62
+const TAP_MS = 220
 
 const emptyStick = (): Stick => ({
   active: false,
@@ -44,6 +45,9 @@ export class Input {
   private aimBase: HTMLDivElement
   private aimKnob!: HTMLDivElement
   private superQueued = false
+  private aimTapQueued = false
+  private aimDownAt = 0
+  private aimDragged = false
 
   constructor() {
     this.el = document.getElementById('app') as HTMLDivElement
@@ -116,6 +120,10 @@ export class Input {
     stick.ox = ox
     stick.oy = oy
     this.updateStick(stick, x, y)
+    if (stick === this.state.aim) {
+      this.aimDownAt = performance.now()
+      this.aimDragged = false
+    }
   }
 
   private updateStick(stick: Stick, x: number, y: number): void {
@@ -141,6 +149,7 @@ export class Input {
     stick.dx = dx
     stick.dy = dy
     stick.mag = clamp(mag, 0, 1)
+    if (stick === this.state.aim && (dx !== 0 || dy !== 0)) this.aimDragged = true
     this.paintStick(stick)
   }
 
@@ -152,6 +161,9 @@ export class Input {
     stick.mag = 0
     const base = stick === this.state.move ? this.moveBase : this.aimBase
     base.classList.add('hidden')
+    if (stick === this.state.aim && !this.aimDragged && performance.now() - this.aimDownAt < TAP_MS) {
+      this.aimTapQueued = true
+    }
   }
 
   private paintQueued = false
@@ -203,6 +215,14 @@ export class Input {
   consumeSuper(): boolean {
     if (this.superQueued) {
       this.superQueued = false
+      return true
+    }
+    return false
+  }
+
+  consumeAimTap(): boolean {
+    if (this.aimTapQueued) {
+      this.aimTapQueued = false
       return true
     }
     return false
