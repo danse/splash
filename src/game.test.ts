@@ -2,6 +2,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import { Game, MatchResult } from './game'
 import { Camera } from './core/camera'
+import { Input } from './core/input'
 
 function stubCtx(): CanvasRenderingContext2D {
   const target: Record<string, unknown> = {}
@@ -167,6 +168,65 @@ describe('Practice mode', () => {
     for (let i = 0; i < 60; i++) update(1 / 60)
     expect(player.pos.y).toBeGreaterThanOrEqual(player.r - 0.5)
     expect(player.pos.y).toBeLessThanOrEqual(game.arena.height - player.r + 0.5)
+  })
+})
+
+function screenYOf(game: Game): number {
+  const cam = (game as unknown as { camera: Camera }).camera
+  return (game.player.pos.y - cam.y) * cam.scale + cam.viewH / 2
+}
+
+function startPlaying(): { game: Game; update: (dt: number) => void } {
+  vi.spyOn(Math, 'random').mockReturnValue(0.5)
+  const { game, update } = makeGame()
+  game.startMatch('blaster', 'practice')
+  setViewport(390, 844, 2)
+  for (let i = 0; i < 300; i++) update(1 / 60)
+  return { game, update }
+}
+
+describe('Player stays on camera', () => {
+  it('stays fully visible while walking to the bottom of the world', () => {
+    const { game, update } = startPlaying()
+    const input = (game as unknown as { input: Input }).input
+    input.state.keys['KeyS'] = true
+    const cam = (game as unknown as { camera: Camera }).camera
+    for (let i = 0; i < 600; i++) {
+      update(1 / 60)
+      const sy = screenYOf(game)
+      expect(sy, `bottom walk frame ${i} playerY=${game.player.pos.y.toFixed(1)}`).toBeGreaterThanOrEqual(0)
+      expect(sy, `bottom walk frame ${i}`).toBeLessThanOrEqual(cam.viewH)
+    }
+  })
+
+  it('stays fully visible while walking to the top of the world', () => {
+    const { game, update } = startPlaying()
+    const input = (game as unknown as { input: Input }).input
+    input.state.keys['KeyW'] = true
+    const cam = (game as unknown as { camera: Camera }).camera
+    for (let i = 0; i < 600; i++) {
+      update(1 / 60)
+      const sy = screenYOf(game)
+      expect(sy, `top walk frame ${i} playerY=${game.player.pos.y.toFixed(1)}`).toBeGreaterThanOrEqual(0)
+      expect(sy, `top walk frame ${i}`).toBeLessThanOrEqual(cam.viewH)
+    }
+  })
+
+  it('stays fully visible when the player respawns far from the camera', () => {
+    const { game, update } = startPlaying()
+    const cam = (game as unknown as { camera: Camera }).camera
+    const player = game.player
+    player.pos.x = 1200
+    player.pos.y = 40
+    for (let i = 0; i < 60; i++) update(1 / 60)
+    expect(cam.y).toBeLessThan(600)
+    player.alive = false
+    for (let i = 0; i < 400; i++) {
+      update(1 / 60)
+      const sy = screenYOf(game)
+      expect(sy, `after respawn frame ${i} playerY=${player.pos.y.toFixed(1)} camY=${cam.y.toFixed(1)}`).toBeGreaterThanOrEqual(0)
+      expect(sy, `after respawn frame ${i}`).toBeLessThanOrEqual(cam.viewH)
+    }
   })
 })
 

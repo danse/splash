@@ -58,6 +58,30 @@ describe('Camera clamp', () => {
   })
 })
 
+describe('Camera snap to far target', () => {
+  it('teleports to a target that is more than a viewport away (respawn / new match)', () => {
+    const cam = new Camera()
+    cam.setViewport(800, 400)
+    cam.follow({ pos: { x: 2160, y: 1200 } }, { x: 0, y: 0, w: 2400, h: 2400 })
+    cam.update(1 / 60)
+    expect(cam.x).toBeCloseTo(1400, 3)
+    expect(cam.y).toBeCloseTo(1200, 3)
+  })
+
+  it('still lerps smoothly to a nearby target (dash / knockback)', () => {
+    const cam = new Camera()
+    cam.setViewport(800, 400)
+    cam.x = 1000
+    cam.y = 1000
+    cam.follow({ pos: { x: 1100, y: 1100 } }, { x: 0, y: 0, w: 2400, h: 2400 })
+    cam.update(1 / 60)
+    expect(cam.x).toBeGreaterThan(1000)
+    expect(cam.x).toBeLessThan(1100)
+    expect(cam.y).toBeGreaterThan(1000)
+    expect(cam.y).toBeLessThan(1100)
+  })
+})
+
 describe('Camera pixel snap', () => {
   it('snaps the horizontal camera offset to device pixels', () => {
     const cam = new Camera()

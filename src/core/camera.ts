@@ -34,8 +34,15 @@ export class Camera {
   update(dt: number): void {
     if (this.target) {
       const k = 1 - Math.pow(0.0015, dt)
-      this.x = lerp(this.x, this.target.pos.x, k)
-      this.y = lerp(this.y, this.target.pos.y, k)
+      const snapLimit = Math.max(this.viewW, this.viewH) / 2 / this.scale
+      const far = Math.hypot(this.target.pos.x - this.x, this.target.pos.y - this.y)
+      if (far > snapLimit) {
+        this.x = this.target.pos.x
+        this.y = this.target.pos.y
+      } else {
+        this.x = lerp(this.x, this.target.pos.x, k)
+        this.y = lerp(this.y, this.target.pos.y, k)
+      }
     }
     if (this.bounds) this.clampToBounds()
   }
