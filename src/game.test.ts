@@ -77,6 +77,36 @@ describe('Game match end', () => {
   })
 })
 
+describe('Practice mode', () => {
+  it('never ends the match and respawns the player', () => {
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    const results: MatchResult[] = []
+    game.onEnd = (r) => results.push(r)
+    game.player.alive = false
+    for (let i = 0; i < 400; i++) update(1 / 60)
+    expect(results.length).toBe(0)
+    expect(game.player.alive).toBe(true)
+  })
+
+  it('gives only the first bot a brain (the attacker)', () => {
+    const { game } = makeGame()
+    game.startMatch('blaster', 'practice')
+    const brains = (game as unknown as { brains: Map<unknown, unknown> }).brains
+    expect(brains.get(game.bots[0])).toBeDefined()
+    expect(brains.get(game.bots[1])).toBeUndefined()
+    expect(brains.get(game.bots[4])).toBeUndefined()
+  })
+
+  it('respawns bots that die in practice', () => {
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    for (const bot of game.bots) bot.alive = false
+    for (let i = 0; i < 400; i++) update(1 / 60)
+    expect(game.bots.every((b) => b.alive)).toBe(true)
+  })
+})
+
 function setViewport(w: number, h: number, dpr = 1): void {
   Object.defineProperty(window, 'innerWidth', { value: w, configurable: true })
   Object.defineProperty(window, 'innerHeight', { value: h, configurable: true })

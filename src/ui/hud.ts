@@ -7,9 +7,10 @@ export class Hud {
   private healthText: HTMLElement
   private superBar: HTMLElement
   private superBtn: HTMLButtonElement
+  private exitBtn: HTMLElement
   private feed: HTMLElement
 
-  constructor(onSuper: () => void) {
+  constructor(onSuper: () => void, onExit: () => void) {
     this.root = document.createElement('div')
     this.root.id = 'hud'
     this.root.style.display = 'none'
@@ -21,11 +22,19 @@ export class Hud {
       <div class="kills"><span class="label">Kills</span><span id="kills-val">0</span></div>
       <div class="bots-left"><b id="bots-val">0</b>bots</div>
       <div class="timer" id="timer-val">2:00</div>
+      <button class="hud-exit" id="btn-exit">✕</button>
     `
     this.root.appendChild(top)
     this.killsEl = top.querySelector('#kills-val') as HTMLElement
     this.timerEl = top.querySelector('#timer-val') as HTMLElement
     this.botsEl = top.querySelector('#bots-val') as HTMLElement
+    this.exitBtn = top.querySelector('#btn-exit') as HTMLElement
+    this.exitBtn.style.display = 'none'
+    this.exitBtn.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      onExit()
+    })
 
     const bottom = document.createElement('div')
     bottom.className = 'bottom-hud'
@@ -61,6 +70,10 @@ export class Hud {
     this.root.style.display = 'none'
   }
 
+  showExit(show: boolean): void {
+    this.exitBtn.style.display = show ? '' : 'none'
+  }
+
   update(hp: number, maxHp: number, superCharge: number, superReady: boolean): void {
     const ratio = Math.max(0, hp / maxHp)
     this.healthBar.style.width = `${ratio * 100}%`
@@ -80,6 +93,10 @@ export class Hud {
   }
 
   setTimer(seconds: number): void {
+    if (!Number.isFinite(seconds)) {
+      this.timerEl.textContent = '∞'
+      return
+    }
     const s = Math.max(0, Math.ceil(seconds))
     const m = Math.floor(s / 60)
     const r = s % 60

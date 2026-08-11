@@ -22,10 +22,49 @@ export interface MatchResult {
   brawlerName: string
 }
 
+export type ModeId = 'brawl' | 'practice'
+
+export interface GameMode {
+  id: ModeId
+  attackers: number
+  focusPlayer: boolean
+  respawn: boolean
+  timer: boolean
+  endMatch: boolean
+  showExit: boolean
+  announce: string
+  announceGold: boolean
+}
+
 type Phase = 'countdown' | 'playing' | 'ended'
 
 const MATCH_DURATION = 120
 const NUM_BOTS = 5
+
+export const MODES: Record<ModeId, GameMode> = {
+  brawl: {
+    id: 'brawl',
+    attackers: NUM_BOTS,
+    focusPlayer: false,
+    respawn: false,
+    timer: true,
+    endMatch: true,
+    showExit: false,
+    announce: 'FIGHT!',
+    announceGold: false,
+  },
+  practice: {
+    id: 'practice',
+    attackers: 1,
+    focusPlayer: true,
+    respawn: true,
+    timer: false,
+    endMatch: false,
+    showExit: true,
+    announce: 'PRACTICE — 1 BOT FIGHTS',
+    announceGold: true,
+  },
+}
 
 export class Game {
   private canvas: HTMLCanvasElement
@@ -44,7 +83,11 @@ export class Game {
   private viewH = 0
   private dpr = 1
   private powerUntil = new Map<Brawler, number>()
+  private respawnQueue = new Map<Brawler, { x: number; y: number; timer: number }>()
+  private spawnPoints = new Map<Brawler, { x: number; y: number }>()
+  private mode: GameMode = MODES.brawl
   onEnd: ((r: MatchResult) => void) | null = null
+  onExit: (() => void) | null = null
 
   arena!: Arena
   brawlers: Brawler[] = []
@@ -61,7 +104,12 @@ export class Game {
     this.input = new Input()
     this.camera = new Camera()
     this.fx = new FX()
-    this.hud = new Hud(() => this.input.queueSuper())
+    this.hud = new Hud(
+      () => this.input.queueSuper(),
+      () => {
+        if (this.onExit) this.onExit()
+      },
+    )
 
     this.resize()
     window.addEventListener('resize', () => this.resize())
@@ -86,8 +134,9 @@ export class Game {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   }
 
-  startMatch(brawlerId: string): void {
+  startMatch(brawlerId: string, modeId: ModeId = 'brawl'): void {
     initAudio()
+    this.mode = MODES[modeId]
     this.arena = generateArena(Math.floor(Math.random() * 1e9), NUM_BOTS + 1)
     this.brawlers = []
     this.bots = []
@@ -95,6 +144,8 @@ export class Game {
     this.projectiles = []
     this.pickups = []
     this.powerUntil.clear()
+    this.respawnQueue.clear()
+    this.spawnPoints.clear()
     this.time = 0
     this.countdown = 3.4
     this.phase = 'countdown'
@@ -106,13 +157,20 @@ export class Game {
     player.isPlayer = true
     this.player = player
     this.brawlers.push(player)
+    this.spawnPoints.set(player, { x: spawns[0].x, y: spawns[0].y })
 
+    const attackers = this.mode.attackers
     for (let i = 1; i <= NUM_BOTS; i++) {
       const botDef = BRAWLER_DEFS[randomBrawlerId()]
       const bot = new Brawler(botDef, spawns[i].x, spawns[i].y)
       this.bots.push(bot)
       this.brawlers.push(bot)
-      this.brains.set(bot, new BotBrain(spawns[i].x, spawns[i].y))
+      this.spawnPoints.set(bot, { x: spawns[i].x, y: spawns[i].y })
+      if (i <= attackers) {
+        const brain = new BotBrain(spawns[i].x, spawns[i].y)
+        if (this.mode.focusPlayer) brain.preferredTarget = this.player
+        this.brains.set(bot, brain)
+      }
     }
 
     const center = this.arena.powerSpots
@@ -133,10 +191,11 @@ export class Game {
 
     this.camera.follow(this.player, this.arena.bounds)
     this.hud.show()
-    this.hud.announce('FIGHT!', false)
+    this.hud.announce(this.mode.announce, this.mode.announceGold)
     this.hud.setKills(0)
     this.hud.setBots(this.bots.length)
-    this.hud.setTimer(MATCH_DURATION)
+    this.hud.showExit(this.mode.showExit)
+    this.hud.setTimer(this.mode.timer ? MATCH_DURATION : Infinity)
   }
 
   private update(dt: number): void {
@@ -168,17 +227,20 @@ export class Game {
       this.updatePickups(dt)
       this.handleDashDamage()
       this.checkDeaths()
+      if (this.mode.respawn) this.respawnDead(dt)
       this.fx.update(dt)
       this.camera.update(dt)
       this.updateHud()
 
-      const botsLeft = this.bots.filter((b) => b.alive).length
-      if (!this.player.alive) {
-        this.phase = 'ended'
-      } else if (botsLeft === 0) {
-        this.phase = 'ended'
-      } else if (this.time >= MATCH_DURATION) {
-        this.phase = 'ended'
+      if (this.mode.endMatch) {
+        const botsLeft = this.bots.filter((b) => b.alive).length
+        if (!this.player.alive) {
+          this.phase = 'ended'
+        } else if (botsLeft === 0) {
+          this.phase = 'ended'
+        } else if (this.time >= MATCH_DURATION) {
+          this.phase = 'ended'
+        }
       }
     }
 
@@ -209,7 +271,8 @@ export class Game {
   private updateBrains(dt: number): void {
     for (const bot of this.bots) {
       if (!bot.alive) continue
-      const brain = this.brains.get(bot)!
+      const brain = this.brains.get(bot)
+      if (!brain) continue
       const ctrl = brain.think(bot, this.brawlers, this.arena.walls, dt, this.time)
       if (this.phase !== 'playing') {
         ctrl.firing = false
@@ -521,6 +584,32 @@ export class Game {
       } else {
         this.hud.setBots(this.bots.filter((x) => x.alive).length)
       }
+
+      if (this.mode.respawn) {
+        const spawn = this.spawnPoints.get(b)
+        if (spawn) {
+          this.respawnQueue.set(b, { x: spawn.x, y: spawn.y, timer: b.isPlayer ? 2 : 3 })
+        }
+      }
+    }
+  }
+
+  private respawnDead(dt: number): void {
+    if (this.respawnQueue.size === 0) return
+    for (const b of this.respawnQueue.keys()) {
+      const spawn = this.respawnQueue.get(b)!
+      spawn.timer -= dt
+      if (spawn.timer > 0) continue
+      b.alive = true
+      b.deadProcessed = false
+      b.hp = b.maxHp
+      b.pos.x = spawn.x
+      b.pos.y = spawn.y
+      b.lastHitBy = null
+      b.dash.hitIds.clear()
+      this.respawnQueue.delete(b)
+      this.fx.ring(b.pos.x, b.pos.y, b.def.accent, 90)
+      if (b.isPlayer) this.hud.announce('RESPAWN', true)
     }
   }
 
@@ -533,7 +622,7 @@ export class Game {
     if (this.phase === 'ended') return
     const p = this.player
     this.hud.update(p.hp, p.maxHp, p.superCharge, p.superReady)
-    this.hud.setTimer(MATCH_DURATION - this.time)
+    this.hud.setTimer(this.mode.timer ? MATCH_DURATION - this.time : Infinity)
   }
 
   private worldToScreenX(wx: number): number {

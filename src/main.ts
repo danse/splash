@@ -1,4 +1,4 @@
-import { Game } from './game'
+import { Game, type ModeId } from './game'
 import { Screens } from './ui/screens'
 import { setMuted } from './audio'
 
@@ -16,18 +16,28 @@ const game = new Game()
 const screens = new Screens()
 
 let lastBrawlerId = 'blaster'
+let lastMode: ModeId = 'brawl'
 
 screens.onMute = (m) => setMuted(m)
 screens.onSelectCb((id) => {
   lastBrawlerId = id
-  game.startMatch(id)
+  lastMode = 'brawl'
+  game.startMatch(id, 'brawl')
+})
+screens.onPracticeCb((id) => {
+  lastBrawlerId = id
+  lastMode = 'practice'
+  game.startMatch(id, 'practice')
 })
 screens.onRestartCb(() => {
-  game.startMatch(lastBrawlerId)
+  game.startMatch(lastBrawlerId, lastMode)
 })
 screens.onMenuCb(() => {
   screens.showMenu()
 })
 game.onEnd = (r) => {
   screens.showResults(r)
+}
+game.onExit = () => {
+  screens.showMenu()
 }

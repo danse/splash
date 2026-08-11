@@ -12,6 +12,7 @@ export class BotBrain {
   wanderTarget = { x: 0, y: 0 }
   wanderTimer = 0
   wobble = 0
+  preferredTarget: Brawler | null = null
   private rngA = Math.random()
   private rngB = Math.random()
   private nextJitter = 0
@@ -30,12 +31,16 @@ export class BotBrain {
   ): BrawlerControl {
     let target: Brawler | null = null
     let best = Infinity
-    for (const b of all) {
-      if (b === self || !b.alive) continue
-      const d = dist(self.pos.x, self.pos.y, b.pos.x, b.pos.y)
-      if (d < best) {
-        best = d
-        target = b
+    if (this.preferredTarget && this.preferredTarget.alive) {
+      target = this.preferredTarget
+    } else {
+      for (const b of all) {
+        if (b === self || !b.alive) continue
+        const d = dist(self.pos.x, self.pos.y, b.pos.x, b.pos.y)
+        if (d < best) {
+          best = d
+          target = b
+        }
       }
     }
 

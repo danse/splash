@@ -60,6 +60,20 @@ describe('Screens transitions', () => {
     }
   })
 
+  it('Practice fires onPractice with the selected brawler and hides every screen', () => {
+    let practiced: string | null = null
+    screens.onPracticeCb((id) => (practiced = id))
+    byId('btn-play').click()
+    const tank = document.querySelector('.brawler-card[data-id="tank"]') as HTMLElement
+    tank.click()
+    byId('btn-practice').click()
+    expect(practiced).toBe('tank')
+    const screensEls = document.querySelectorAll('#app > .screen')
+    for (const el of screensEls) {
+      expect(el.classList.contains('hidden')).toBe(true)
+    }
+  })
+
   it('honors the card selection when starting a match', () => {
     byId('btn-play').click()
     const tank = document.querySelector('.brawler-card[data-id="tank"]') as HTMLElement

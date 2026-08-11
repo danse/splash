@@ -253,6 +253,24 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
+#hud .hud-exit {
+  pointer-events: auto;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  color: #cfe0ff;
+  background: rgba(10, 14, 24, 0.72);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+
 #hud .bots-left {
   background: rgba(10, 14, 24, 0.72);
   backdrop-filter: blur(4px);

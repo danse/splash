@@ -15,6 +15,7 @@ export class Screens {
   private resultsTitle: HTMLElement
   private resultsStats: HTMLElement
   private onSelect!: (id: string) => void
+  private onPractice!: (id: string) => void
   private onRestart!: () => void
   private onMenu!: () => void
   private mutedBtn: HTMLElement
@@ -43,6 +44,7 @@ export class Screens {
       <div class="brawler-grid" id="brawler-grid"></div>
       <div class="row">
         <button class="btn" id="btn-fight">⚔ Brawl</button>
+        <button class="btn ghost" id="btn-practice">🎯 Practice</button>
         <button class="btn ghost" id="btn-back">← Back</button>
       </div>
     `
@@ -100,6 +102,10 @@ export class Screens {
       this.hideAll()
       this.onSelect(this.selected)
     })
+    this.select.querySelector('#btn-practice')!.addEventListener('click', () => {
+      this.hideAll()
+      this.onPractice(this.selected)
+    })
     this.select.querySelector('#btn-back')!.addEventListener('click', () => {
       this.select.classList.add('hidden')
       this.menu.classList.remove('hidden')
@@ -115,6 +121,9 @@ export class Screens {
 
   onSelectCb = (fn: (id: string) => void): void => {
     this.onSelect = fn
+  }
+  onPracticeCb = (fn: (id: string) => void): void => {
+    this.onPractice = fn
   }
   onRestartCb = (fn: () => void): void => {
     this.onRestart = fn
