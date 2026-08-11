@@ -36,6 +36,43 @@ function runMatch(game: Game, update: (dt: number) => void, kill: (g: Game) => v
   return { calls: results.length, results }
 }
 
+function makePointerEvent(type: string, props: Record<string, unknown>): Event {
+  const e = new Event(type, { bubbles: true }) as unknown as Record<string, unknown>
+  Object.assign(e, {
+    pointerId: 1,
+    clientX: 0,
+    clientY: 0,
+    pointerType: 'touch',
+    button: 0,
+    ...props,
+  })
+  return e as unknown as PointerEvent
+}
+
+function touchDown(x: number, y: number, id = 1): void {
+  window.dispatchEvent(makePointerEvent('pointerdown', { clientX: x, clientY: y, pointerId: id, pointerType: 'touch' }))
+}
+
+function touchMove(x: number, y: number, id = 1): void {
+  window.dispatchEvent(makePointerEvent('pointermove', { clientX: x, clientY: y, pointerId: id, pointerType: 'touch' }))
+}
+
+function touchUp(id = 1): void {
+  window.dispatchEvent(makePointerEvent('pointerup', { pointerId: id, pointerType: 'touch' }))
+}
+
+function mouseMove(x: number, y: number): void {
+  window.dispatchEvent(makePointerEvent('pointermove', { clientX: x, clientY: y, pointerType: 'mouse' }))
+}
+
+function mouseDown(x: number, y: number): void {
+  window.dispatchEvent(makePointerEvent('pointerdown', { clientX: x, clientY: y, pointerType: 'mouse', button: 0 }))
+}
+
+function mouseUp(): void {
+  window.dispatchEvent(makePointerEvent('pointerup', { pointerType: 'mouse', button: 0 }))
+}
+
 beforeEach(() => {
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => stubCtx()) as never)
   document.body.innerHTML = '<div id="app"><canvas id="game-canvas"></canvas></div>'
@@ -227,6 +264,61 @@ describe('Player stays on camera', () => {
       expect(sy, `after respawn frame ${i} playerY=${player.pos.y.toFixed(1)} camY=${cam.y.toFixed(1)}`).toBeGreaterThanOrEqual(0)
       expect(sy, `after respawn frame ${i}`).toBeLessThanOrEqual(cam.viewH)
     }
+  })
+})
+
+describe('Player aims and fires on release', () => {
+  it('shows aiming while held and fires exactly once on release (mouse)', () => {
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+
+    mouseMove(600, 400)
+    mouseDown(600, 400)
+    update(1 / 60)
+    expect(player.aiming).toBe(true)
+    expect(player.fireCd).toBe(0)
+
+    for (let i = 0; i < 10; i++) update(1 / 60)
+    expect(player.aiming).toBe(true)
+    expect(player.fireCd).toBe(0)
+
+    mouseUp()
+    update(1 / 60)
+    expect(player.aiming).toBe(false)
+    expect(player.fireCd).toBeCloseTo(1 / 2.6, 5)
+  })
+
+  it('aims with the stick and fires on release (touch)', () => {
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+
+    touchDown(800, 500, 2)
+    touchMove(850, 560, 2)
+    update(1 / 60)
+    expect(player.aiming).toBe(true)
+    expect(player.fireCd).toBe(0)
+
+    touchUp(2)
+    update(1 / 60)
+    expect(player.aiming).toBe(false)
+    expect(player.fireCd).toBeCloseTo(1 / 2.6, 5)
+  })
+
+  it('does not fire when the button is released during the countdown', () => {
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    const projectiles = (game as unknown as { projectiles: unknown[] }).projectiles
+
+    mouseMove(600, 400)
+    mouseDown(600, 400)
+    update(1 / 60)
+    mouseUp()
+    update(1 / 60)
+    expect(projectiles.length).toBe(0)
   })
 })
 

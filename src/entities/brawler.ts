@@ -102,6 +102,7 @@ export interface BrawlerControl {
   moveMag: number
   aimAngle: number
   firing: boolean
+  fireOnce?: boolean
   superQueued: boolean
 }
 
@@ -126,6 +127,7 @@ export class Brawler {
   moving = false
   lastHitBy: Brawler | null = null
   deadProcessed = false
+  aiming = false
   private firePressed = false
 
   constructor(def: BrawlerDef, x: number, y: number) {
@@ -186,6 +188,10 @@ export class Brawler {
       this.triggerSuper()
     }
 
+    if (ctrl.fireOnce && this.fireCd <= 0 && !this.dash.active) {
+      this.firePressed = true
+      this.fireCd = 1 / this.def.fireRate
+    }
     if (ctrl.firing && this.fireCd <= 0 && !this.dash.active) {
       this.firePressed = true
       this.fireCd = 1 / this.def.fireRate

@@ -8,7 +8,7 @@ import { Projectile, spawnProjectile } from './entities/projectile'
 import { Pickup, makePickup } from './entities/pickup'
 import { generateArena, Arena } from './world/arena'
 import { resolveCircle, circleRectCollide } from './world/collision'
-import { drawArena, drawBushes, drawBrawler, drawProjectile, drawPickup, inBush } from './render'
+import { drawArena, drawBushes, drawBrawler, drawProjectile, drawPickup, drawAimPointer, inBush } from './render'
 import { Hud } from './ui/hud'
 import { sfx, initAudio } from './audio'
 import { dist2, clamp, rand, TAU } from './core/math'
@@ -83,6 +83,7 @@ export class Game {
   private phase: Phase = 'countdown'
   private endGate = new EndGate(1.8)
   private lastAim = 0
+  private fireHeldPrev = false
   private viewW = 0
   private viewH = 0
   private dpr = 1
@@ -316,40 +317,41 @@ export class Game {
   private updatePlayer(dt: number): void {
     const p = this.player
     if (!p.alive) {
+      p.aiming = false
       p.update(dt, { moveX: 0, moveY: 0, moveMag: 0, aimAngle: p.facing, firing: false, superQueued: false })
       return
     }
     const mv = this.input.moveVec()
     const stick = this.input.state.aim
-    let aim = this.lastAim
-    let firing = false
+    const touch = this.input.isTouchMode()
+    const fireHeld = touch ? stick.active : this.input.state.fireHeld
+    const released = !fireHeld && this.fireHeldPrev
+    this.fireHeldPrev = fireHeld
 
-    if (this.input.isTouchMode()) {
-      if (stick.active) {
-        if (stick.mag > 0.18) {
-          aim = Math.atan2(stick.dy, stick.dx)
-          firing = true
-        } else {
-          aim = this.lastAim
-        }
+    let aim = this.lastAim
+    if (touch) {
+      if (stick.active && stick.mag > 0.18) {
+        aim = Math.atan2(stick.dy, stick.dx)
       }
-    } else {
-      if (stick.active) {
-        if (stick.mag > 0.18) {
-          aim = Math.atan2(stick.dy, stick.dx)
-          firing = true
-        }
-      } else {
-        const sx = this.worldToScreenX(p.pos.x)
-        const sy = this.worldToScreenY(p.pos.y)
-        aim = Math.atan2(this.input.state.mouse.y - sy, this.input.state.mouse.x - sx)
-        firing = this.input.state.fireHeld
-      }
+    } else if (fireHeld) {
+      const sx = this.worldToScreenX(p.pos.x)
+      const sy = this.worldToScreenY(p.pos.y)
+      aim = Math.atan2(this.input.state.mouse.y - sy, this.input.state.mouse.x - sx)
     }
     this.lastAim = aim
 
+    p.aiming = fireHeld
+    const fireOnce = released && this.phase === 'playing'
     const superQueued = this.input.consumeSuper()
-    p.update(dt, { moveX: mv.x, moveY: mv.y, moveMag: mv.mag, aimAngle: aim, firing, superQueued })
+    p.update(dt, {
+      moveX: mv.x,
+      moveY: mv.y,
+      moveMag: mv.mag,
+      aimAngle: aim,
+      firing: false,
+      fireOnce,
+      superQueued,
+    })
   }
 
   private moveBrawlers(): void {
@@ -619,6 +621,7 @@ export class Game {
       }
 
       if (b.isPlayer) {
+        b.aiming = false
         sfx.death()
       } else {
         this.hud.setBots(this.bots.filter((x) => x.alive).length)
@@ -646,6 +649,7 @@ export class Game {
       b.pos.y = spawn.y
       b.lastHitBy = null
       b.dash.hitIds.clear()
+      b.aiming = false
       this.respawnQueue.delete(b)
       this.fx.ring(b.pos.x, b.pos.y, b.def.accent, 90)
       if (b.isPlayer) this.hud.announce('RESPAWN', true)
@@ -758,9 +762,15 @@ export class Game {
       if (inBush(b, this.arena)) hidden.push(b)
       else visible.push(b)
     }
-    for (const b of hidden) drawBrawler(ctx, b, this.arena, { walls: this.arena.walls, showHealthBars: true })
+    for (const b of hidden) {
+      if (b.aiming) drawAimPointer(ctx, b, this.arena)
+      drawBrawler(ctx, b, this.arena, { walls: this.arena.walls, showHealthBars: true })
+    }
     drawBushes(ctx, this.arena)
-    for (const b of visible) drawBrawler(ctx, b, this.arena, { walls: this.arena.walls, showHealthBars: true })
+    for (const b of visible) {
+      if (b.aiming) drawAimPointer(ctx, b, this.arena)
+      drawBrawler(ctx, b, this.arena, { walls: this.arena.walls, showHealthBars: true })
+    }
 
     for (const p of this.projectiles) drawProjectile(ctx, p)
 

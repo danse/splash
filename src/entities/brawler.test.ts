@@ -100,6 +100,38 @@ describe('Brawler firing', () => {
   })
 })
 
+describe('Brawler fire-on-release', () => {
+  it('requests a single shot when fireOnce is set', () => {
+    b.update(1 / 60, idle({ fireOnce: true }))
+    expect(b.wantsFireThisFrame()).toBe(true)
+  })
+
+  it('does not fire on the frame after fireOnce', () => {
+    b.update(1 / 60, idle({ fireOnce: true }))
+    expect(b.wantsFireThisFrame()).toBe(true)
+    b.update(1 / 60, idle())
+    expect(b.wantsFireThisFrame()).toBe(false)
+  })
+
+  it('does not fire fireOnce while the cooldown is active', () => {
+    b.update(1 / 60, idle({ fireOnce: true }))
+    expect(b.wantsFireThisFrame()).toBe(true)
+    b.update(1 / 60, idle({ fireOnce: true }))
+    expect(b.wantsFireThisFrame()).toBe(false)
+    const rate = BRAWLER_DEFS.blaster.fireRate
+    b.update(1 / rate, idle({ fireOnce: true }))
+    expect(b.wantsFireThisFrame()).toBe(true)
+  })
+
+  it('does not fire on release while dashing', () => {
+    const c = new Brawler(BRAWLER_DEFS.charger, 0, 0)
+    c.chargeSuper(1)
+    c.update(1 / 60, idle({ superQueued: true }))
+    c.update(1 / 60, idle({ fireOnce: true }))
+    expect(c.wantsFireThisFrame()).toBe(false)
+  })
+})
+
 describe('Brawler super', () => {
   it('starts without a super ready', () => {
     expect(b.superReady).toBe(false)

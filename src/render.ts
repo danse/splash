@@ -216,6 +216,74 @@ export function drawBrawler(
   ctx.globalAlpha = 1
 }
 
+export function drawAimPointer(ctx: CanvasRenderingContext2D, b: Brawler, arena: Arena): void {
+  const def = b.def
+  const range = def.projectileRange
+  const size = def.projectileSize
+  const a = b.aimAngle
+  const cx = b.pos.x
+  const cy = b.pos.y
+  const hidden = inBush(b, arena)
+  const bodyAlpha = hidden ? 0.05 : 0.16
+
+  ctx.save()
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+
+  switch (def.superType) {
+    case 'storm': {
+      const from = b.r + 10
+      const to = from + range
+      const w = Math.max(3, size * 0.9)
+      const grad = ctx.createLinearGradient(cx, cy, cx + Math.cos(a) * to, cy + Math.sin(a) * to)
+      grad.addColorStop(0, def.color)
+      grad.addColorStop(1, 'rgba(255,255,255,0.5)')
+      ctx.globalAlpha = bodyAlpha
+      ctx.strokeStyle = grad
+      ctx.lineWidth = w
+      ctx.beginPath()
+      ctx.moveTo(cx + Math.cos(a) * from, cy + Math.sin(a) * from)
+      ctx.lineTo(cx + Math.cos(a) * to, cy + Math.sin(a) * to)
+      ctx.stroke()
+      break
+    }
+    case 'dash': {
+      const from = b.r + 6
+      const to = from + range
+      const spread = 0.14
+      ctx.globalAlpha = bodyAlpha
+      ctx.fillStyle = def.color
+      ctx.beginPath()
+      ctx.moveTo(cx + Math.cos(a) * from, cy + Math.sin(a) * from)
+      ctx.lineTo(cx + Math.cos(a - spread) * to, cy + Math.sin(a - spread) * to)
+      ctx.lineTo(cx + Math.cos(a + spread) * to, cy + Math.sin(a + spread) * to)
+      ctx.closePath()
+      ctx.fill()
+      break
+    }
+    case 'boulder': {
+      const radius = b.r + 10 + range
+      const half = 0.2
+      ctx.globalAlpha = bodyAlpha
+      ctx.strokeStyle = def.color
+      ctx.lineWidth = Math.max(4, size * 1.6)
+      ctx.beginPath()
+      ctx.arc(cx, cy, radius, a - half, a + half)
+      ctx.stroke()
+      break
+    }
+  }
+
+  const tip = b.r + 10 + range
+  ctx.globalAlpha = hidden ? 0.1 : 0.4
+  ctx.fillStyle = def.accent
+  ctx.beginPath()
+  ctx.arc(cx + Math.cos(a) * tip, cy + Math.sin(a) * tip, Math.max(3, size * 0.9), 0, TAU)
+  ctx.fill()
+
+  ctx.restore()
+}
+
 export function drawProjectile(ctx: CanvasRenderingContext2D, p: Projectile): void {
   ctx.save()
   ctx.shadowColor = p.color
