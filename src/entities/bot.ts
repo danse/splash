@@ -8,6 +8,13 @@ export function randomBrawlerId(): string {
   return BRAWLER_IDS[Math.floor(Math.random() * BRAWLER_IDS.length)]
 }
 
+export interface BrainOpts {
+  turret?: boolean
+  noSuper?: boolean
+  noRetreat?: boolean
+  perfectAim?: boolean
+}
+
 export class BotBrain {
   wanderTarget = { x: 0, y: 0 }
   wanderTimer = 0
@@ -17,10 +24,12 @@ export class BotBrain {
   private rngA = Math.random()
   private rngB = Math.random()
   private nextJitter = 0
+  private opts: BrainOpts
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, opts: BrainOpts = {}) {
     this.wanderTarget.x = x
     this.wanderTarget.y = y
+    this.opts = opts
   }
 
   think(
@@ -74,16 +83,18 @@ export class BotBrain {
       const nx = dx / d
       const ny = dy / d
 
-      this.nextJitter -= dt
-      if (this.nextJitter <= 0) {
-        this.wobble = rand(-0.09, 0.09)
-        this.nextJitter = rand(0.12, 0.3)
+      if (!this.opts.perfectAim) {
+        this.nextJitter -= dt
+        if (this.nextJitter <= 0) {
+          this.wobble = rand(-0.09, 0.09)
+          this.nextJitter = rand(0.12, 0.3)
+        }
       }
-      aimAngle = Math.atan2(dy, dx) + this.wobble
+      aimAngle = Math.atan2(dy, dx) + (this.opts.perfectAim ? 0 : this.wobble)
 
       let radial = 0
       let strafe = 0
-      if (lowHp) {
+      if (lowHp && !this.opts.noRetreat) {
         radial = -1
       } else if (d > desiredRange) {
         radial = 1
@@ -103,7 +114,7 @@ export class BotBrain {
       const cooldownReady = self.fireCd <= 0
       if (inRange && cooldownReady) firing = true
 
-      if (self.superReady) {
+      if (!this.opts.noSuper && self.superReady) {
         if (myDef.superType === 'dash' && d < 320) superQueued = true
         if (myDef.superType === 'storm' && d < myDef.projectileRange * 0.8) superQueued = true
         if (myDef.superType === 'boulder' && d < 700) superQueued = true
@@ -118,7 +129,7 @@ export class BotBrain {
       }
     }
 
-    if (this.stationary) {
+    if (this.stationary || this.opts.turret) {
       moveX = 0
       moveY = 0
       superQueued = false

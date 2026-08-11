@@ -1,19 +1,16 @@
 import { Input } from './core/input'
 import { Camera } from './core/camera'
 import { GameLoop } from './core/loop'
-import { FX } from './fx/particles'
-import { Brawler, BRAWLER_DEFS } from './entities/brawler'
-import { BotBrain, randomBrawlerId } from './entities/bot'
-import { Projectile, spawnProjectile } from './entities/projectile'
-import { Pickup, makePickup } from './entities/pickup'
-import { generateArena, Arena } from './world/arena'
-import { resolveCircle, circleRectCollide } from './world/collision'
+import { Brawler, BrawlerControl } from './entities/brawler'
+import { randomBrawlerId } from './entities/bot'
+import { Projectile } from './entities/projectile'
+import { Arena } from './world/arena'
 import { drawArena, drawBushes, drawBrawler, drawProjectile, drawPickup, drawAimPointer, inBush } from './render'
 import { Hud } from './ui/hud'
 import { sfx, initAudio } from './audio'
-import { dist2, dist, clamp, rand, TAU } from './core/math'
-import { EndGate } from './core/endGate'
+import { TAU } from './core/math'
 import { DebugOverlay, isDebug, type DebugInfo } from './debug'
+import { Simulation, SimPhase } from './sim/simulation'
 
 export interface MatchResult {
   won: boolean
@@ -38,10 +35,10 @@ export interface GameMode {
   announceGold: boolean
 }
 
-type Phase = 'countdown' | 'playing' | 'ended'
-
 const MATCH_DURATION = 120
 const NUM_BOTS = 5
+const COUNTDOWN = 3.4
+const END_DELAY = 1.8
 
 export const MODES: Record<ModeId, GameMode> = {
   brawl: {
@@ -76,20 +73,13 @@ export class Game {
   private input: Input
   private camera: Camera
   private loop: GameLoop
-  private fx: FX
   private hud: Hud
-  private time = 0
-  private countdown = 3.4
-  private phase: Phase = 'countdown'
-  private endGate = new EndGate(1.8)
+  private sim!: Simulation
   private lastAim = 0
   private fireHeldPrev = false
   private viewW = 0
   private viewH = 0
   private dpr = 1
-  private powerUntil = new Map<Brawler, number>()
-  private respawnQueue = new Map<Brawler, { x: number; y: number; timer: number }>()
-  private spawnPoints = new Map<Brawler, { x: number; y: number }>()
   private mode: GameMode = MODES.brawl
   private debug: DebugOverlay | null = null
   private prevCamX = 0
@@ -97,24 +87,49 @@ export class Game {
   private debugFpsTime = 0
   private debugFpsSteps = 0
   private debugFps = 0
+  private goAnnounced = false
   onEnd: ((r: MatchResult) => void) | null = null
   onExit: (() => void) | null = null
 
-  arena!: Arena
-  brawlers: Brawler[] = []
-  bots: Brawler[] = []
-  player!: Brawler
-  private brains = new Map<Brawler, BotBrain>()
-  private projectiles: Projectile[] = []
-  private pickups: Pickup[] = []
-  private timeSinceTick = 0
+  get arena() {
+    return this.sim.arena
+  }
+  set arena(a: Arena) {
+    this.sim.arena = a
+  }
+  get brawlers() {
+    return this.sim.brawlers
+  }
+  get bots() {
+    return this.sim.bots
+  }
+  get player() {
+    return this.sim.player!
+  }
+  get projectiles() {
+    return this.sim.projectiles
+  }
+  get pickups() {
+    return this.sim.pickups
+  }
+  get phase() {
+    return this.sim.phase
+  }
+  set phase(p: SimPhase) {
+    this.sim.phase = p
+  }
+  get brains() {
+    return this.sim.brains
+  }
+  get time() {
+    return this.sim.time
+  }
 
   constructor() {
     this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement
     this.ctx = this.canvas.getContext('2d')!
     this.input = new Input()
     this.camera = new Camera()
-    this.fx = new FX()
     this.hud = new Hud(
       () => this.input.queueSuper(),
       () => this.exitToMenu(),
@@ -157,171 +172,87 @@ export class Game {
   startMatch(brawlerId: string, modeId: ModeId = 'brawl'): void {
     initAudio()
     this.mode = MODES[modeId]
-    this.arena = generateArena(Math.floor(Math.random() * 1e9), NUM_BOTS + 1)
-    this.brawlers = []
-    this.bots = []
-    this.brains.clear()
-    this.projectiles = []
-    this.pickups = []
-    this.powerUntil.clear()
-    this.respawnQueue.clear()
-    this.spawnPoints.clear()
-    this.time = 0
-    this.countdown = 3.4
-    this.phase = 'countdown'
-    this.endGate.reset()
+    this.goAnnounced = false
+    this.sim = new Simulation(Math.floor(Math.random() * 1e9), {
+      attackers: this.mode.attackers,
+      respawn: this.mode.respawn,
+      timer: this.mode.timer,
+      endMatch: this.mode.endMatch,
+      endOnLastDeath: false,
+      duration: MATCH_DURATION,
+      countdown: COUNTDOWN,
+      endDelay: END_DELAY,
+      focusPlayer: this.mode.focusPlayer,
+      dummyBots: this.mode.dummyBots,
+      spawnCount: NUM_BOTS + 1,
+      modeId: this.mode.id,
+    })
 
-    const def = BRAWLER_DEFS[brawlerId]
-    const spawns = this.arena.spawnPoints
-    const player = new Brawler(def, spawns[0].x, spawns[0].y)
-    player.isPlayer = true
-    this.player = player
-    this.brawlers.push(player)
-    this.spawnPoints.set(player, { x: spawns[0].x, y: spawns[0].y })
-
-    const attackers = this.mode.attackers
+    this.sim.addPlayer(brawlerId)
     for (let i = 1; i <= NUM_BOTS; i++) {
-      const botDef = BRAWLER_DEFS[randomBrawlerId()]
-      let x = spawns[i].x
-      let y = spawns[i].y
+      let x: number | undefined
+      let y: number | undefined
       if (this.mode.focusPlayer && i === 1) {
-        const cx = player.pos.x - this.arena.width / 2
-        const cy = player.pos.y - this.arena.height / 2
+        const p = this.sim.player!
+        const cx = p.pos.x - this.sim.arena.width / 2
+        const cy = p.pos.y - this.sim.arena.height / 2
         const cl = Math.max(1, Math.hypot(cx, cy))
-        x = player.pos.x - (cx / cl) * 260
-        y = player.pos.y - (cy / cl) * 260
+        x = p.pos.x - (cx / cl) * 260
+        y = p.pos.y - (cy / cl) * 260
       }
-      const bot = new Brawler(botDef, x, y)
-      this.bots.push(bot)
-      this.brawlers.push(bot)
-      this.spawnPoints.set(bot, { x, y })
-      if (i <= attackers) {
-        const brain = new BotBrain(x, y)
-        brain.stationary = this.mode.dummyBots
-        if (this.mode.focusPlayer) brain.preferredTarget = this.player
-        this.brains.set(bot, brain)
+      this.sim.addBot(randomBrawlerId(), x, y)
+    }
+    this.sim.addDefaultPickups()
+
+    this.sim.onEnd = (r) => {
+      const p = this.sim.player!
+      const botsLeft = this.sim.bots.filter((b) => b.alive).length
+      const botBest = this.sim.bots.reduce((m, b) => Math.max(m, b.kills), 0)
+      const won = p.alive && p.kills >= botBest
+      const result: MatchResult = {
+        won,
+        kills: p.kills,
+        botsLeft,
+        time: Math.min(MATCH_DURATION, r.time),
+        brawlerName: p.def.name,
+      }
+      this.hud.hide()
+      if (won) sfx.win()
+      else sfx.lose()
+      if (this.onEnd) this.onEnd(result)
+    }
+    this.sim.onStep = () => {
+      if (this.sim.phase === 'playing' && !this.goAnnounced) {
+        this.goAnnounced = true
+        this.hud.announce('GO!', true)
       }
     }
 
-    const center = this.arena.powerSpots
-    this.pickups.push(makePickup(center[0].x, center[0].y, 'power', 1))
-    this.pickups.push(makePickup(center[1].x, center[1].y, 'heal', 2600))
-    this.pickups.push(makePickup(center[2].x, center[2].y, 'power', 1))
-    this.pickups.push(makePickup(center[3].x, center[3].y, 'heal', 2600))
-    for (let i = 0; i < 3; i++) {
-      this.pickups.push(
-        makePickup(
-          rand(200, this.arena.width - 200),
-          rand(200, this.arena.height - 200),
-          'heal',
-          2000,
-        ),
-      )
-    }
-
-    this.camera.follow(this.player, this.arena.bounds)
+    this.camera.follow(this.sim.player!, this.sim.arena.bounds)
     this.hud.show()
     this.hud.announce(this.mode.announce, this.mode.announceGold)
     this.hud.setKills(0)
-    this.hud.setBots(this.bots.length)
+    this.hud.setBots(this.sim.bots.length)
     this.hud.showExit(this.mode.showExit)
     this.hud.setTimer(this.mode.timer ? MATCH_DURATION : Infinity)
   }
 
   private update(dt: number): void {
-    this.timeSinceTick += dt
-    if (!this.arena) return
+    if (!this.sim) return
     this.updateDebug()
-
-    if (this.phase === 'countdown') {
-      this.countdown -= dt
-      this.updateBrains(dt)
-      this.moveBrawlers()
-      this.fx.update(dt)
-      this.camera.update(dt)
-      this.updateHud()
-      if (this.countdown <= 0) {
-        this.phase = 'playing'
-        this.hud.announce('GO!', true)
-        sfx.ready()
-      }
-      this.render()
-      return
-    }
-
-    if (this.phase === 'playing') {
-      this.time += dt
-      this.updateBrains(dt)
-      this.moveBrawlers()
-      this.fireLogic()
-      this.updateProjectiles(dt)
-      this.updatePickups(dt)
-      this.handleDashDamage()
-      this.checkDeaths()
-      if (this.mode.respawn) this.respawnDead(dt)
-      this.fx.update(dt)
-      this.camera.update(dt)
-      this.updateHud()
-
-      if (this.mode.endMatch) {
-        const botsLeft = this.bots.filter((b) => b.alive).length
-        if (!this.player.alive) {
-          this.phase = 'ended'
-        } else if (botsLeft === 0) {
-          this.phase = 'ended'
-        } else if (this.time >= MATCH_DURATION) {
-          this.phase = 'ended'
-        }
-      }
-    }
-
-    if (this.phase === 'ended') {
-      this.fx.update(dt)
-      this.camera.update(dt)
-      if (this.endGate.tick(dt) && this.onEnd) {
-        const botsLeft = this.bots.filter((b) => b.alive).length
-        const botBest = this.bots.reduce((m, b) => Math.max(m, b.kills), 0)
-        const won = this.player.alive && this.player.kills >= botBest
-        const r: MatchResult = {
-          won,
-          kills: this.player.kills,
-          botsLeft,
-          time: Math.min(MATCH_DURATION, this.time),
-          brawlerName: this.player.def.name,
-        }
-        this.hud.hide()
-        if (won) sfx.win()
-        else sfx.lose()
-        this.onEnd(r)
-      }
-    }
-
+    this.sim.step(dt, () => this.playerControl())
+    this.camera.update(dt)
+    this.updateHud()
     this.render()
   }
 
-  private updateBrains(dt: number): void {
-    for (const bot of this.bots) {
-      if (!bot.alive) continue
-      const brain = this.brains.get(bot)
-      if (!brain) continue
-      const ctrl = brain.think(bot, this.brawlers, this.arena.walls, dt, this.time)
-      if (this.phase !== 'playing') {
-        ctrl.firing = false
-        ctrl.superQueued = false
-      }
-      bot.update(dt, ctrl)
-    }
-    this.updatePlayer(dt)
+  moveBrawlers(): void {
+    this.sim.moveBrawlers()
   }
 
-  private updatePlayer(dt: number): void {
-    const p = this.player
+  private playerControl(): BrawlerControl {
+    const p = this.sim.player!
     const tap = this.input.consumeAimTap()
-    if (!p.alive) {
-      p.aiming = false
-      p.update(dt, { moveX: 0, moveY: 0, moveMag: 0, aimAngle: p.facing, firing: false, superQueued: false })
-      return
-    }
     const mv = this.input.moveVec()
     const stick = this.input.state.aim
     const fireHeld = stick.active
@@ -332,8 +263,8 @@ export class Game {
     if (stick.active && stick.mag > 0.18) {
       aim = Math.atan2(stick.dy, stick.dx)
     }
-    if (tap && this.phase === 'playing') {
-      const target = this.closestEnemy(this.player)
+    if (tap && this.sim.phase === 'playing') {
+      const target = this.sim.closestEnemy(p)
       if (target) {
         aim = Math.atan2(target.pos.y - p.pos.y, target.pos.x - p.pos.x)
       }
@@ -341,9 +272,9 @@ export class Game {
     this.lastAim = aim
 
     p.aiming = fireHeld
-    const fireOnce = (released || tap) && this.phase === 'playing'
+    const fireOnce = (released || tap) && this.sim.phase === 'playing'
     const superQueued = this.input.consumeSuper()
-    p.update(dt, {
+    return {
       moveX: mv.x,
       moveY: mv.y,
       moveMag: mv.mag,
@@ -351,382 +282,14 @@ export class Game {
       firing: false,
       fireOnce,
       superQueued,
-    })
-  }
-
-  private closestEnemy(from: Brawler): Brawler | null {
-    let best: Brawler | null = null
-    let bestD = Infinity
-    for (const b of this.brawlers) {
-      if (b === from || !b.alive) continue
-      const d = dist(from.pos.x, from.pos.y, b.pos.x, b.pos.y)
-      if (d < bestD) {
-        bestD = d
-        best = b
-      }
     }
-    return best
-  }
-
-  private moveBrawlers(): void {
-    for (const b of this.brawlers) {
-      if (!b.alive && !b.dash.active) continue
-      for (const o of this.brawlers) {
-        if (o === b || !o.alive) continue
-        const dx = b.pos.x - o.pos.x
-        const dy = b.pos.y - o.pos.y
-        const minD = b.r + o.r
-        const d2 = dx * dx + dy * dy
-        if (d2 < minD * minD && d2 > 0.0001) {
-          const d = Math.sqrt(d2)
-          const push = (minD - d) / d
-          const half = push / 2
-          b.pos.x += dx * half
-          b.pos.y += dy * half
-          o.pos.x -= dx * half
-          o.pos.y -= dy * half
-        }
-      }
-      this.keepInArena(b)
-    }
-  }
-
-  private keepInArena(b: Brawler): void {
-    const c = { x: b.pos.x, y: b.pos.y, r: b.r }
-    resolveCircle(this.arena.walls, c)
-    b.pos.x = clamp(c.x, b.r, this.arena.width - b.r)
-    b.pos.y = clamp(c.y, b.r, this.arena.height - b.r)
-  }
-
-  private fireLogic(): void {
-    for (const b of this.brawlers) {
-      if (!b.alive) continue
-      if (b.superJustTriggered) {
-        b.superJustTriggered = false
-        this.doSupers(b)
-      }
-      if (b.wantsFireThisFrame()) {
-        if (b.def.melee) this.doMelee(b)
-        else this.doFire(b)
-      }
-    }
-  }
-
-  private doFire(b: Brawler): void {
-    const def = b.def
-    const powered = this.isPowered(b)
-    const dmg = def.damage * (powered ? 1.35 : 1)
-    const count = def.bulletCount
-    for (let i = 0; i < count; i++) {
-      const offset = count === 1 ? 0 : (i - (count - 1) / 2) * 0.05
-      const angle = b.aimAngle + offset + rand(-0.015, 0.015)
-      this.projectiles.push(
-        spawnProjectile(
-          b,
-          angle,
-          def.projectileSpeed,
-          def.projectileRange,
-          dmg,
-          def.projectileSize,
-          def.color,
-          b.isPlayer,
-          false,
-        ),
-      )
-    }
-    const mx = b.pos.x + Math.cos(b.aimAngle) * (b.r + 16)
-    const my = b.pos.y + Math.sin(b.aimAngle) * (b.r + 16)
-    this.fx.muzzle(mx, my, b.aimAngle, def.color)
-    if (b.isPlayer) {
-      sfx.shoot()
-    } else {
-      sfx.shoot(this.bots.indexOf(b) % 3)
-    }
-  }
-
-  private doMelee(b: Brawler): void {
-    const def = b.def
-    const powered = this.isPowered(b)
-    const dmg = def.damage * (powered ? 1.35 : 1)
-    const range = def.meleeRange ?? 120
-    const arc = def.meleeArc ?? 1.9
-
-    for (const target of this.brawlers) {
-      if (target === b || !target.alive) continue
-      const dx = target.pos.x - b.pos.x
-      const dy = target.pos.y - b.pos.y
-      const d = Math.hypot(dx, dy)
-      if (d > range + target.r) continue
-      let diff = Math.atan2(dy, dx) - b.aimAngle
-      while (diff > Math.PI) diff -= TAU
-      while (diff < -Math.PI) diff += TAU
-      if (Math.abs(diff) <= arc / 2) {
-        this.applyMeleeHit(b, target, dmg)
-      }
-    }
-
-    if (b.isPlayer) sfx.swing()
-    else sfx.swing(this.bots.indexOf(b) % 3)
-  }
-
-  private applyMeleeHit(attacker: Brawler, target: Brawler, dmg: number): void {
-    target.takeDamage(dmg)
-    target.lastHitBy = attacker
-    attacker.chargeSuper(dmg * attacker.def.superChargePerHit)
-
-    const dir = Math.atan2(target.pos.y - attacker.pos.y, target.pos.x - attacker.pos.x)
-    target.pos.x += Math.cos(dir) * 18
-    target.pos.y += Math.sin(dir) * 18
-    this.keepInArena(target)
-    if (attacker.isPlayer || target.isPlayer) sfx.hit()
-    this.fx.hitSpark(target.pos.x, target.pos.y, attacker.def.accent)
-    this.fx.floatText(
-      target.pos.x + rand(-12, 12),
-      target.pos.y - target.r - 14,
-      `${Math.round(dmg)}`,
-      attacker.isPlayer ? '#ffd86b' : '#ff8a6b',
-      attacker.isPlayer ? 26 : 20,
-    )
-    if (target.isPlayer) sfx.hurt()
-  }
-
-  private doSupers(b: Brawler): void {
-    const def = b.def
-    const friendly = b.isPlayer
-    switch (def.superType) {
-      case 'storm': {
-        const count = 7
-        for (let i = 0; i < count; i++) {
-          const t = (i / (count - 1)) * 2 - 1
-          const angle = b.aimAngle + t * 0.55
-          this.projectiles.push(
-            spawnProjectile(
-              b,
-              angle,
-              def.projectileSpeed * 1.35,
-              def.projectileRange * 1.1,
-              def.superDamage,
-              def.projectileSize * 1.5,
-              def.accent,
-              friendly,
-              true,
-            ),
-          )
-        }
-        this.fx.explosion(b.pos.x + Math.cos(b.aimAngle) * b.r, b.pos.y + Math.sin(b.aimAngle) * b.r, def.accent)
-        break
-      }
-      case 'boulder': {
-        this.projectiles.push(
-          spawnProjectile(
-            b,
-            b.aimAngle,
-            def.projectileSpeed * 0.55,
-            def.projectileRange * 1.3,
-            def.superDamage,
-            42,
-            def.accent,
-            friendly,
-            true,
-            5,
-          ),
-        )
-        this.fx.ring(b.pos.x, b.pos.y, def.accent, 90)
-        break
-      }
-      case 'dash':
-        this.fx.ring(b.pos.x, b.pos.y, def.accent, 60)
-        break
-    }
-    if (friendly) sfx.super()
-    else sfx.super(this.bots.indexOf(b) % 3)
-  }
-
-  private updateProjectiles(dt: number): void {
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const p = this.projectiles[i]
-      p.x += p.vx * dt
-      p.y += p.vy * dt
-      p.ttl -= dt
-      p.trail.unshift({ x: p.x, y: p.y })
-      if (p.trail.length > 7) p.trail.pop()
-
-      let dead = p.ttl <= 0
-      if (!dead) {
-        for (const w of this.arena.walls) {
-          if (circleRectCollide({ x: p.x, y: p.y, r: p.r }, w)) {
-            this.fx.hitSpark(p.x - p.vx * dt, p.y - p.vy * dt, p.color)
-            dead = true
-            break
-          }
-        }
-      }
-
-      if (!dead) {
-        for (const target of this.brawlers) {
-          if (!target.alive || target === p.owner) continue
-          const rr = p.r + target.r
-          if (dist2(p.x, p.y, target.pos.x, target.pos.y) < rr * rr) {
-            this.applyHit(p, target)
-            if (p.pierce > 0) {
-              p.pierce--
-            } else {
-              dead = true
-            }
-            break
-          }
-        }
-      }
-
-      if (dead) this.projectiles.splice(i, 1)
-    }
-  }
-
-  private applyHit(p: Projectile, target: Brawler): void {
-    const def = p.owner.def
-    target.takeDamage(p.damage)
-    target.lastHitBy = p.owner
-    p.owner.chargeSuper(p.damage * def.superChargePerHit)
-
-    const dir = Math.atan2(p.vy, p.vx)
-    target.pos.x += Math.cos(dir) * 14
-    target.pos.y += Math.sin(dir) * 14
-    this.keepInArena(target)
-    if (p.owner.isPlayer || target.isPlayer) {
-      sfx.hit()
-    }
-    this.fx.hitSpark(target.pos.x, target.pos.y, p.color)
-    this.fx.floatText(
-      target.pos.x + rand(-12, 12),
-      target.pos.y - target.r - 14,
-      `${Math.round(p.damage)}`,
-      p.owner.isPlayer ? '#ffd86b' : '#ff8a6b',
-      p.owner.isPlayer ? 26 : 20,
-    )
-    if (target.isPlayer) sfx.hurt()
-  }
-
-  private handleDashDamage(): void {
-    for (const b of this.brawlers) {
-      if (!b.alive || !b.dash.active) continue
-      for (const target of this.brawlers) {
-        if (target === b || !target.alive || b.dash.hitIds.has(target)) continue
-        const rr = b.r + target.r + 10
-        if (dist2(b.pos.x, b.pos.y, target.pos.x, target.pos.y) < rr * rr) {
-          b.dash.hitIds.add(target)
-          target.takeDamage(b.def.superDamage)
-          target.lastHitBy = b
-          const dir = Math.atan2(target.pos.y - b.pos.y, target.pos.x - b.pos.x)
-          target.pos.x += Math.cos(dir) * 60
-          target.pos.y += Math.sin(dir) * 60
-          this.keepInArena(target)
-          this.fx.explosion(target.pos.x, target.pos.y, b.def.accent)
-          this.fx.floatText(target.pos.x, target.pos.y - target.r, `${Math.round(b.def.superDamage)}`, '#ffd23f', 30)
-          sfx.dashHit()
-          if (target === this.player || b.isPlayer) sfx.hit()
-        }
-      }
-    }
-  }
-
-  private updatePickups(dt: number): void {
-    for (const pu of this.pickups) {
-      pu.pulse += dt
-      if (!pu.active) {
-        pu.respawn -= dt
-        if (pu.respawn <= 0) pu.active = true
-        continue
-      }
-      for (const b of this.brawlers) {
-        if (!b.alive) continue
-        if (dist2(pu.x, pu.y, b.pos.x, b.pos.y) < (pu.r + b.r) ** 2) {
-          if (pu.kind === 'heal') {
-            if (b.hp >= b.maxHp) continue
-            b.heal(pu.amount)
-            this.fx.floatText(pu.x, pu.y - 20, `+${Math.round(pu.amount)}`, '#5dff8f', 26)
-            this.fx.ring(pu.x, pu.y, '#3fd46a', 60)
-          } else {
-            this.powerUntil.set(b, this.time + 8)
-            this.fx.floatText(pu.x, pu.y - 20, 'DMG UP!', '#ffd23f', 26)
-            this.fx.ring(pu.x, pu.y, '#ffd23f', 60)
-            if (b.isPlayer) this.hud.announce('DAMAGE UP!', true)
-          }
-          pu.active = false
-          pu.respawn = 15
-          sfx.pickup()
-          break
-        }
-      }
-    }
-  }
-
-  private checkDeaths(): void {
-    for (const b of this.brawlers) {
-      if (b.alive || b.deadProcessed) continue
-      b.deadProcessed = true
-      this.fx.explosion(b.pos.x, b.pos.y, b.def.color)
-
-      const killer = b.lastHitBy && b.lastHitBy !== b && b.lastHitBy.alive ? b.lastHitBy : null
-      if (killer) {
-        killer.kills++
-        if (killer.isPlayer) {
-          this.hud.setKills(killer.kills)
-          this.hud.addKill(b.def.name, killer.def.name)
-          sfx.kill()
-        } else {
-          sfx.death()
-          this.hud.addKill(b.def.name, killer.def.name)
-        }
-      } else {
-        sfx.death()
-      }
-
-      if (b.isPlayer) {
-        b.aiming = false
-        sfx.death()
-      } else {
-        this.hud.setBots(this.bots.filter((x) => x.alive).length)
-      }
-
-      if (this.mode.respawn) {
-        const spawn = this.spawnPoints.get(b)
-        if (spawn) {
-          this.respawnQueue.set(b, { x: spawn.x, y: spawn.y, timer: b.isPlayer ? 2 : 3 })
-        }
-      }
-    }
-  }
-
-  private respawnDead(dt: number): void {
-    if (this.respawnQueue.size === 0) return
-    for (const b of this.respawnQueue.keys()) {
-      const spawn = this.respawnQueue.get(b)!
-      spawn.timer -= dt
-      if (spawn.timer > 0) continue
-      b.alive = true
-      b.deadProcessed = false
-      b.hp = b.maxHp
-      b.pos.x = spawn.x
-      b.pos.y = spawn.y
-      b.lastHitBy = null
-      b.dash.hitIds.clear()
-      b.aiming = false
-      this.respawnQueue.delete(b)
-      this.fx.ring(b.pos.x, b.pos.y, b.def.accent, 90)
-      if (b.isPlayer) this.hud.announce('RESPAWN', true)
-    }
-  }
-
-  private isPowered(b: Brawler): boolean {
-    const until = this.powerUntil.get(b)
-    return until !== undefined && until > this.time
   }
 
   private updateHud(): void {
-    if (this.phase === 'ended') return
-    const p = this.player
+    if (this.sim.phase === 'ended') return
+    const p = this.sim.player!
     this.hud.update(p.hp, p.maxHp, p.superCharge, p.superReady)
-    this.hud.setTimer(this.mode.timer ? MATCH_DURATION - this.time : Infinity)
+    this.hud.setTimer(this.mode.timer ? MATCH_DURATION - this.sim.time : Infinity)
   }
 
   private updateDebug(): void {
@@ -745,14 +308,14 @@ export class Game {
       this.debugFpsSteps = 0
     }
 
-    const arena = this.arena
+    const arena = this.sim.arena
     const scale = cam.scale
     const hw = cam.viewW / 2 / scale
     const hh = cam.viewH / 2 / scale
     const target = cam.targetPos
     const info: DebugInfo = {
       mode: this.mode.id,
-      phase: this.phase,
+      phase: this.sim.phase,
       fps: this.debugFps,
       camX: cam.x,
       camY: cam.y,
@@ -770,8 +333,8 @@ export class Game {
       maxY: arena.height - hh,
       viewWider: hw > arena.width / 2,
       viewTaller: hh > arena.height / 2,
-      playerX: this.player.pos.x,
-      playerY: this.player.pos.y,
+      playerX: this.sim.player!.pos.x,
+      playerY: this.sim.player!.pos.y,
       targetX: target ? target.pos.x : NaN,
       targetY: target ? target.pos.y : NaN,
       wallLeft: (0 - cam.x) * scale + cam.viewW / 2,
@@ -798,36 +361,36 @@ export class Game {
     ctx.scale(this.camera.scale, this.camera.scale)
     ctx.translate(-this.camera.snapX(dpr), -this.camera.snapY(dpr))
 
-    drawArena(ctx, this.arena, false)
+    drawArena(ctx, this.sim.arena, false)
 
-    for (const pu of this.pickups) {
+    for (const pu of this.sim.pickups) {
       if (pu.active) drawPickup(ctx, pu)
     }
 
-    for (const p of this.projectiles) {
+    for (const p of this.sim.projectiles) {
       this.drawProjectileTrail(ctx, p)
     }
 
     const hidden: Brawler[] = []
     const visible: Brawler[] = []
-    for (const b of this.brawlers) {
+    for (const b of this.sim.brawlers) {
       if (!b.alive) continue
-      if (inBush(b, this.arena)) hidden.push(b)
+      if (inBush(b, this.sim.arena)) hidden.push(b)
       else visible.push(b)
     }
     for (const b of hidden) {
-      if (b.aiming) drawAimPointer(ctx, b, this.arena)
-      drawBrawler(ctx, b, this.arena, { walls: this.arena.walls, showHealthBars: true })
+      if (b.aiming) drawAimPointer(ctx, b, this.sim.arena)
+      drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true })
     }
-    drawBushes(ctx, this.arena)
+    drawBushes(ctx, this.sim.arena)
     for (const b of visible) {
-      if (b.aiming) drawAimPointer(ctx, b, this.arena)
-      drawBrawler(ctx, b, this.arena, { walls: this.arena.walls, showHealthBars: true })
+      if (b.aiming) drawAimPointer(ctx, b, this.sim.arena)
+      drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true })
     }
 
-    for (const p of this.projectiles) drawProjectile(ctx, p)
+    for (const p of this.sim.projectiles) drawProjectile(ctx, p)
 
-    this.fx.render(ctx)
+    this.sim.fx.render(ctx)
     ctx.restore()
   }
 

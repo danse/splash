@@ -35,6 +35,21 @@ npm run build     # type-check + production build to dist/
 - **Arena:** seeded procedural generation of walls and hiding bushes
 - **Tests:** Vitest suites covering math, collision, arena generation, brawler mechanics, bot AI, and input
 
+## Balance harness
+
+Headless, seeded bot-vs-bot duels for comparing archetypes. Deterministic per seed (`Math.random` is seeded).
+
+```bash
+npm run balance -- --n 100          # full round-robin (6 matchups) in parallel workers
+npm run balance -- --pairs blaster:tank --n 50
+npm run balance -- --n 50 --json results.json
+npm run balance -- --ablate turret  # remove a bot capability and measure the win-rate delta
+```
+
+Options: `--n` duels per pair (default 100), `--seed` (default 1), `--pairs a:b,c:d`, `--workers`, `--pickups`, `--duration`, `--json <path>`, and for ablation: `--ablate <turret|nosuper|noretreat|perfectaim>`, `--ref <archetype>` (default `charger`, plays side B), `--targets <a,b,c>`.
+
+Output includes a matchup table (wins, avg damage, hits/shot, supers, HP left), an archetype overview, and optionally a JSON blob with per-duel aggregates.
+
 ## Deploying
 
 Pushing to `main` triggers `.github/workflows/deploy.yml`, which runs the tests, builds, and publishes to GitHub Pages automatically. The Vite config uses `base: './'` so assets resolve correctly under any repo subpath.
