@@ -8,6 +8,7 @@ import { TAU, easeOutCubic } from './core/math'
 export interface RenderOpts {
   walls: Rect[]
   showHealthBars: boolean
+  time?: number
 }
 
 export function drawArena(ctx: CanvasRenderingContext2D, arena: Arena, includeBushes = true): void {
@@ -201,6 +202,21 @@ export function drawBrawler(
   ctx.arc(b.r * 0.2, -b.r * 0.3, 1.8, 0, TAU)
   ctx.fill()
 
+  if (b.isPlayer) {
+    const pulse = Math.sin((opts.time ?? 0) * 3)
+    const rr = b.r + 5 + pulse * 1.5
+    ctx.beginPath()
+    ctx.arc(0, 0, rr, 0, TAU)
+    ctx.lineWidth = 3
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(0, 0, rr + 3.5, 0, TAU)
+    ctx.lineWidth = 1.5
+    ctx.strokeStyle = 'rgba(255,210,60,0.55)'
+    ctx.stroke()
+  }
+
   ctx.restore()
 
   if (b.dash.active) {
@@ -237,6 +253,17 @@ export function drawBrawler(
     ctx.font = '900 20px sans-serif'
     ctx.textAlign = 'center'
     ctx.fillText('★', b.pos.x, b.pos.y - b.r - 26)
+  }
+
+  if (b.isPlayer) {
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = '#ffd86b'
+    ctx.beginPath()
+    ctx.moveTo(b.pos.x, b.pos.y - b.r - 32)
+    ctx.lineTo(b.pos.x - 9, b.pos.y - b.r - 45)
+    ctx.lineTo(b.pos.x + 9, b.pos.y - b.r - 45)
+    ctx.closePath()
+    ctx.fill()
   }
 
   ctx.globalAlpha = 1

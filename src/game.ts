@@ -380,12 +380,12 @@ export class Game {
     }
     for (const b of hidden) {
       if (b.aiming) drawAimPointer(ctx, b, this.sim.arena)
-      drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true })
+      drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true, time: this.sim.time })
     }
     drawBushes(ctx, this.sim.arena)
     for (const b of visible) {
       if (b.aiming) drawAimPointer(ctx, b, this.sim.arena)
-      drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true })
+      drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true, time: this.sim.time })
     }
 
     for (const p of this.sim.projectiles) drawProjectile(ctx, p)
