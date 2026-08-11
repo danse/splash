@@ -121,6 +121,21 @@ describe('Practice mode', () => {
     expect(Math.hypot(attacker.pos.x - sx, attacker.pos.y - sy)).toBeLessThan(5)
     expect(fired).toBe(true)
   })
+
+  it('exiting practice stops the game loop', () => {
+    const { game } = makeGame()
+    game.startMatch('blaster', 'practice')
+    const loop = (game as unknown as { loop: { start(): void; running: boolean } }).loop
+    loop.start()
+    let exited = false
+    game.onExit = () => {
+      exited = true
+    }
+    const exitBtn = document.getElementById('btn-exit') as HTMLElement
+    exitBtn.click()
+    expect(exited).toBe(true)
+    expect(loop.running).toBe(false)
+  })
 })
 
 function setViewport(w: number, h: number, dpr = 1): void {

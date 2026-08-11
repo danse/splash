@@ -22,14 +22,17 @@ screens.onMute = (m) => setMuted(m)
 screens.onSelectCb((id) => {
   lastBrawlerId = id
   lastMode = 'brawl'
+  game.start()
   game.startMatch(id, 'brawl')
 })
 screens.onPracticeCb((id) => {
   lastBrawlerId = id
   lastMode = 'practice'
+  game.start()
   game.startMatch(id, 'practice')
 })
 screens.onRestartCb(() => {
+  game.start()
   game.startMatch(lastBrawlerId, lastMode)
 })
 screens.onMenuCb(() => {

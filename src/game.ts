@@ -109,9 +109,7 @@ export class Game {
     this.fx = new FX()
     this.hud = new Hud(
       () => this.input.queueSuper(),
-      () => {
-        if (this.onExit) this.onExit()
-      },
+      () => this.exitToMenu(),
     )
 
     this.resize()
@@ -119,6 +117,15 @@ export class Game {
 
     this.loop = new GameLoop((dt) => this.update(dt))
     this.loop.start()
+  }
+
+  start(): void {
+    this.loop.start()
+  }
+
+  private exitToMenu(): void {
+    this.loop.stop()
+    if (this.onExit) this.onExit()
   }
 
   private resize(): void {
