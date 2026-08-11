@@ -50,10 +50,10 @@ export class Camera {
 
   private clampToBounds(): void {
     if (!this.bounds) return
+    const { x, y, w, h } = this.bounds
     const hw = this.viewW / 2 / this.scale
     const hh = this.viewH / 2 / this.scale
-    const { x, y, w, h } = this.bounds
-    this.x = clamp(this.x, x + hw, x + w - hw)
-    this.y = clamp(this.y, y + hh, y + h - hh)
+    this.x = w / 2 >= hw ? clamp(this.x, x + hw, x + w - hw) : x + w / 2
+    this.y = h / 2 >= hh ? clamp(this.y, y + hh, y + h - hh) : y + h / 2
   }
 }

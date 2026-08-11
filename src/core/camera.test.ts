@@ -34,6 +34,28 @@ describe('Camera clamp', () => {
     expect(cam.x).toBeCloseTo(1400, 3)
     expect(cam.y).toBeCloseTo(1900, 3)
   })
+
+  it('centers the camera when the view is wider than the arena (landscape)', () => {
+    const cam = new Camera()
+    cam.setViewport(900, 350)
+    cam.follow({ pos: { x: 2160, y: 1200 } }, { x: 0, y: 0, w: 2400, h: 2400 })
+    const seen = new Set<number>()
+    for (let i = 0; i < 300; i++) {
+      cam.update(1 / 60)
+      seen.add(Math.round(cam.x * 100))
+    }
+    expect(cam.x).toBeCloseTo(1200, 3)
+    expect(seen.size).toBeLessThanOrEqual(2)
+  })
+
+  it('centers the camera when the view is taller than the arena (portrait)', () => {
+    const cam = new Camera()
+    cam.setViewport(300, 900)
+    cam.scale = 0.2
+    cam.follow({ pos: { x: 1200, y: 2200 } }, { x: 0, y: 0, w: 2400, h: 2400 })
+    for (let i = 0; i < 100; i++) cam.update(1 / 60)
+    expect(cam.y).toBeCloseTo(1200, 3)
+  })
 })
 
 describe('Camera pixel snap', () => {
