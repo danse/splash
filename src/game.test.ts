@@ -105,6 +105,22 @@ describe('Practice mode', () => {
     for (let i = 0; i < 400; i++) update(1 / 60)
     expect(game.bots.every((b) => b.alive)).toBe(true)
   })
+
+  it('the attacker bot stays still but fires at the player', () => {
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    const attacker = game.bots[0]
+    let fired = false
+    for (let i = 0; i < 60; i++) update(1 / 60)
+    const sx = attacker.pos.x
+    const sy = attacker.pos.y
+    for (let i = 0; i < 300; i++) {
+      update(1 / 60)
+      if ((game as unknown as { projectiles: unknown[] }).projectiles.length > 0) fired = true
+    }
+    expect(Math.hypot(attacker.pos.x - sx, attacker.pos.y - sy)).toBeLessThan(5)
+    expect(fired).toBe(true)
+  })
 })
 
 function setViewport(w: number, h: number, dpr = 1): void {

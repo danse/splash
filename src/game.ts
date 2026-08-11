@@ -28,6 +28,7 @@ export interface GameMode {
   id: ModeId
   attackers: number
   focusPlayer: boolean
+  dummyBots: boolean
   respawn: boolean
   timer: boolean
   endMatch: boolean
@@ -46,6 +47,7 @@ export const MODES: Record<ModeId, GameMode> = {
     id: 'brawl',
     attackers: NUM_BOTS,
     focusPlayer: false,
+    dummyBots: false,
     respawn: false,
     timer: true,
     endMatch: true,
@@ -57,6 +59,7 @@ export const MODES: Record<ModeId, GameMode> = {
     id: 'practice',
     attackers: 1,
     focusPlayer: true,
+    dummyBots: true,
     respawn: true,
     timer: false,
     endMatch: false,
@@ -162,12 +165,22 @@ export class Game {
     const attackers = this.mode.attackers
     for (let i = 1; i <= NUM_BOTS; i++) {
       const botDef = BRAWLER_DEFS[randomBrawlerId()]
-      const bot = new Brawler(botDef, spawns[i].x, spawns[i].y)
+      let x = spawns[i].x
+      let y = spawns[i].y
+      if (this.mode.focusPlayer && i === 1) {
+        const cx = player.pos.x - this.arena.width / 2
+        const cy = player.pos.y - this.arena.height / 2
+        const cl = Math.max(1, Math.hypot(cx, cy))
+        x = player.pos.x - (cx / cl) * 260
+        y = player.pos.y - (cy / cl) * 260
+      }
+      const bot = new Brawler(botDef, x, y)
       this.bots.push(bot)
       this.brawlers.push(bot)
-      this.spawnPoints.set(bot, { x: spawns[i].x, y: spawns[i].y })
+      this.spawnPoints.set(bot, { x, y })
       if (i <= attackers) {
-        const brain = new BotBrain(spawns[i].x, spawns[i].y)
+        const brain = new BotBrain(x, y)
+        brain.stationary = this.mode.dummyBots
         if (this.mode.focusPlayer) brain.preferredTarget = this.player
         this.brains.set(bot, brain)
       }

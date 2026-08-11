@@ -13,6 +13,7 @@ export class BotBrain {
   wanderTimer = 0
   wobble = 0
   preferredTarget: Brawler | null = null
+  stationary = false
   private rngA = Math.random()
   private rngB = Math.random()
   private nextJitter = 0
@@ -114,6 +115,12 @@ export class BotBrain {
         moveX = dx / d
         moveY = dy / d
       }
+    }
+
+    if (this.stationary) {
+      moveX = 0
+      moveY = 0
+      superQueued = false
     }
 
     const len = Math.hypot(moveX, moveY)
