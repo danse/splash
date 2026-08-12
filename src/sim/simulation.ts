@@ -315,17 +315,20 @@ export class Simulation {
     this.events.fire?.(b, 'swing', this.time)
   }
 
-  private applyMeleeHit(attacker: Brawler, target: Brawler, dmg: number): void {
+  private applyDamageHit(
+    attacker: Brawler,
+    target: Brawler,
+    dmg: number,
+    opts: { knockback: number; knockDir: number; color: string },
+  ): void {
     target.takeDamage(dmg)
     target.lastHitBy = attacker
     attacker.chargeSuper(dmg * attacker.def.superChargePerHit)
-
-    const dir = Math.atan2(target.pos.y - attacker.pos.y, target.pos.x - attacker.pos.x)
-    target.pos.x += Math.cos(dir) * 18
-    target.pos.y += Math.sin(dir) * 18
+    target.pos.x += Math.cos(opts.knockDir) * opts.knockback
+    target.pos.y += Math.sin(opts.knockDir) * opts.knockback
     this.keepInArena(target)
     if (attacker.isPlayer || target.isPlayer) sfx.hit()
-    this.fx.hitSpark(target.pos.x, target.pos.y, attacker.def.accent)
+    this.fx.hitSpark(target.pos.x, target.pos.y, opts.color)
     this.fx.floatText(
       target.pos.x + rand(-12, 12),
       target.pos.y - target.r - 14,
@@ -335,6 +338,11 @@ export class Simulation {
     )
     if (target.isPlayer) sfx.hurt()
     this.events.hit?.(attacker, target, dmg, this.time)
+  }
+
+  private applyMeleeHit(attacker: Brawler, target: Brawler, dmg: number): void {
+    const dir = Math.atan2(target.pos.y - attacker.pos.y, target.pos.x - attacker.pos.x)
+    this.applyDamageHit(attacker, target, dmg, { knockback: 18, knockDir: dir, color: attacker.def.accent })
   }
 
   private doSupers(b: Brawler): void {
@@ -380,6 +388,29 @@ export class Simulation {
     this.events.fire?.(b, 'super', this.time)
   }
 
+  private projectileDead(p: Projectile, dt: number): boolean {
+    if (p.ttl <= 0) return true
+    for (const w of this.arena.walls) {
+      if (circleRectCollide({ x: p.x, y: p.y, r: p.r }, w)) {
+        this.fx.hitSpark(p.x - p.vx * dt, p.y - p.vy * dt, p.color)
+        return true
+      }
+    }
+    for (const target of this.brawlers) {
+      if (!target.alive || target === p.owner) continue
+      const rr = p.r + target.r
+      if (dist2(p.x, p.y, target.pos.x, target.pos.y) < rr * rr) {
+        this.applyHit(p, target)
+        if (p.pierce > 0) {
+          p.pierce--
+          return false
+        }
+        return true
+      }
+    }
+    return false
+  }
+
   private updateProjectiles(dt: number): void {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i]
@@ -388,59 +419,13 @@ export class Simulation {
       p.ttl -= dt
       p.trail.unshift({ x: p.x, y: p.y })
       if (p.trail.length > 7) p.trail.pop()
-
-      let dead = p.ttl <= 0
-      if (!dead) {
-        for (const w of this.arena.walls) {
-          if (circleRectCollide({ x: p.x, y: p.y, r: p.r }, w)) {
-            this.fx.hitSpark(p.x - p.vx * dt, p.y - p.vy * dt, p.color)
-            dead = true
-            break
-          }
-        }
-      }
-
-      if (!dead) {
-        for (const target of this.brawlers) {
-          if (!target.alive || target === p.owner) continue
-          const rr = p.r + target.r
-          if (dist2(p.x, p.y, target.pos.x, target.pos.y) < rr * rr) {
-            this.applyHit(p, target)
-            if (p.pierce > 0) {
-              p.pierce--
-            } else {
-              dead = true
-            }
-            break
-          }
-        }
-      }
-
-      if (dead) this.projectiles.splice(i, 1)
+      if (this.projectileDead(p, dt)) this.projectiles.splice(i, 1)
     }
   }
 
   private applyHit(p: Projectile, target: Brawler): void {
-    const def = p.owner.def
-    target.takeDamage(p.damage)
-    target.lastHitBy = p.owner
-    p.owner.chargeSuper(p.damage * def.superChargePerHit)
-
     const dir = Math.atan2(p.vy, p.vx)
-    target.pos.x += Math.cos(dir) * 14
-    target.pos.y += Math.sin(dir) * 14
-    this.keepInArena(target)
-    if (p.owner.isPlayer || target.isPlayer) sfx.hit()
-    this.fx.hitSpark(target.pos.x, target.pos.y, p.color)
-    this.fx.floatText(
-      target.pos.x + rand(-12, 12),
-      target.pos.y - target.r - 14,
-      `${Math.round(p.damage)}`,
-      p.owner.isPlayer ? '#ffd86b' : '#ff8a6b',
-      p.owner.isPlayer ? 26 : 20,
-    )
-    if (target.isPlayer) sfx.hurt()
-    this.events.hit?.(p.owner, target, p.damage, this.time)
+    this.applyDamageHit(p.owner, target, p.damage, { knockback: 14, knockDir: dir, color: p.color })
   }
 
   private handleDashDamage(): void {
@@ -467,6 +452,30 @@ export class Simulation {
     }
   }
 
+  private tryCollect(pu: Pickup): boolean {
+    for (const b of this.brawlers) {
+      if (!b.alive) continue
+      if (dist2(pu.x, pu.y, b.pos.x, b.pos.y) >= (pu.r + b.r) ** 2) continue
+      if (pu.kind === 'heal' && b.hp >= b.maxHp) continue
+      if (pu.kind === 'heal') {
+        b.heal(pu.amount)
+        this.fx.floatText(pu.x, pu.y - 20, `+${Math.round(pu.amount)}`, '#5dff8f', 26)
+        this.fx.ring(pu.x, pu.y, '#3fd46a', 60)
+        this.events.pickup?.(b, 'heal')
+      } else {
+        this.powerUntil.set(b, this.time + 8)
+        this.fx.floatText(pu.x, pu.y - 20, 'DMG UP!', '#ffd23f', 26)
+        this.fx.ring(pu.x, pu.y, '#ffd23f', 60)
+        this.events.pickup?.(b, 'power')
+      }
+      pu.active = false
+      pu.respawn = 15
+      sfx.pickup()
+      return true
+    }
+    return false
+  }
+
   private updatePickups(dt: number): void {
     for (const pu of this.pickups) {
       pu.pulse += dt
@@ -475,27 +484,7 @@ export class Simulation {
         if (pu.respawn <= 0) pu.active = true
         continue
       }
-      for (const b of this.brawlers) {
-        if (!b.alive) continue
-        if (dist2(pu.x, pu.y, b.pos.x, b.pos.y) < (pu.r + b.r) ** 2) {
-          if (pu.kind === 'heal') {
-            if (b.hp >= b.maxHp) continue
-            b.heal(pu.amount)
-            this.fx.floatText(pu.x, pu.y - 20, `+${Math.round(pu.amount)}`, '#5dff8f', 26)
-            this.fx.ring(pu.x, pu.y, '#3fd46a', 60)
-            this.events.pickup?.(b, 'heal')
-          } else {
-            this.powerUntil.set(b, this.time + 8)
-            this.fx.floatText(pu.x, pu.y - 20, 'DMG UP!', '#ffd23f', 26)
-            this.fx.ring(pu.x, pu.y, '#ffd23f', 60)
-            this.events.pickup?.(b, 'power')
-          }
-          pu.active = false
-          pu.respawn = 15
-          sfx.pickup()
-          break
-        }
-      }
+      this.tryCollect(pu)
     }
   }
 
