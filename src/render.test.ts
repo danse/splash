@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
 import { BRAWLER_DEFS, Brawler } from './entities/brawler'
 import { drawBrawler, drawAimPointer } from './render'
+import { setSpriteForTest, resetSpritesForTest } from './render/sprites'
 import type { Arena } from './world/arena'
+
+afterEach(() => {
+  resetSpritesForTest()
+})
 
 const emptyArena = { bushes: [] } as unknown as Arena
 
@@ -10,15 +15,25 @@ function makeRecorder(): {
   ctx: CanvasRenderingContext2D
   translateCalls: Array<[number, number]>
   arcs: Array<[number, number, number, number, number]>
+  rotates: number[]
+  drawImages: Array<{ img: unknown; dx: number; dy: number; dw: number; dh: number }>
 } {
   const translateCalls: Array<[number, number]> = []
   const arcs: Array<[number, number, number, number, number]> = []
+  const rotates: number[] = []
+  const drawImages: Array<{ img: unknown; dx: number; dy: number; dw: number; dh: number }> = []
   const target = {
     arc: (x: number, y: number, r: number, s: number, e: number) => {
       arcs.push([x, y, r, s, e])
     },
     translate: (x: number, y: number) => {
       translateCalls.push([x, y])
+    },
+    rotate: (a: number) => {
+      rotates.push(a)
+    },
+    drawImage: (img: unknown, dx: number, dy: number, dw: number, dh: number) => {
+      drawImages.push({ img, dx, dy, dw, dh })
     },
     createLinearGradient: () => ({ addColorStop: () => {} }),
     createRadialGradient: () => ({ addColorStop: () => {} }),
@@ -32,7 +47,7 @@ function makeRecorder(): {
       return true
     },
   }) as unknown as CanvasRenderingContext2D
-  return { ctx, translateCalls, arcs }
+  return { ctx, translateCalls, arcs, rotates, drawImages }
 }
 
 const eps = 1e-6
@@ -147,5 +162,61 @@ describe('melee rendering geometry', () => {
     const tip = arcs.find(([x, y]) => approx(Math.hypot(x - 100, y - 100), expectedTip))
     expect(tip).toBeDefined()
     expectNear(tip![0], 100)
+  })
+})
+
+describe('sprite rendering', () => {
+  it('rotates a ranged brawler sprite toward the aim angle', () => {
+    setSpriteForTest('blaster', 36, 43)
+    const { ctx, rotates, drawImages } = makeRecorder()
+    const blaster = new Brawler(BRAWLER_DEFS.blaster, 200, 200)
+    blaster.aimAngle = Math.PI / 3
+
+    drawBrawler(ctx, blaster, emptyArena, { walls: [], showHealthBars: false })
+
+    const body = drawImages.find((d) => d.dw === BRAWLER_DEFS.blaster.spriteScale)
+    expect(body).toBeDefined()
+    expect(rotates.some((r) => approx(r, Math.PI / 3 - Math.PI / 2))).toBe(true)
+  })
+
+  it('draws the tank body upright with a barrel rotated to the aim angle', () => {
+    setSpriteForTest('tank', 75, 70)
+    setSpriteForTest('tank-barrel', 16, 50)
+    const { ctx, rotates, drawImages } = makeRecorder()
+    const tank = new Brawler(BRAWLER_DEFS.tank, 400, 300)
+    tank.aimAngle = 0
+
+    drawBrawler(ctx, tank, emptyArena, { walls: [], showHealthBars: false })
+
+    const body = drawImages.find((d) => d.dw === BRAWLER_DEFS.tank.spriteScale)
+    expect(body).toBeDefined()
+    expect(body!.dx).toBe(-BRAWLER_DEFS.tank.spriteScale / 2)
+    expect(rotates.some((r) => approx(r, Math.PI / 2))).toBe(true)
+  })
+
+  it('falls back to shapes when no sprite is loaded', () => {
+    const { ctx, arcs, drawImages } = makeRecorder()
+    const blaster = new Brawler(BRAWLER_DEFS.blaster, 200, 200)
+
+    drawBrawler(ctx, blaster, emptyArena, { walls: [], showHealthBars: false })
+
+    expect(drawImages).toHaveLength(0)
+    expect(arcs.filter(([, , r]) => approx(r, blaster.r)).length).toBeGreaterThan(0)
+  })
+
+  it('draws the melee swing on top of a tank sprite', () => {
+    setSpriteForTest('tank', 75, 70)
+    setSpriteForTest('tank-barrel', 16, 50)
+    const { ctx, drawImages } = makeRecorder()
+    const tank = new Brawler(BRAWLER_DEFS.tank, 400, 300)
+    tank.aimAngle = Math.PI / 3
+    tank.swingT = 0.5
+
+    drawBrawler(ctx, tank, emptyArena, { walls: [], showHealthBars: false })
+
+    const body = drawImages.find((d) => d.dw === BRAWLER_DEFS.tank.spriteScale)
+    expect(body).toBeDefined()
+    const barrel = drawImages.find((d) => d.dw !== BRAWLER_DEFS.tank.spriteScale)
+    expect(barrel).toBeDefined()
   })
 })

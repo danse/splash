@@ -26,6 +26,9 @@ export interface BrawlerDef {
   superChargePerHit: number
   superRange: number
   superSize: number
+  sprite: string
+  spriteScale: number
+  barrelSprite?: string
 }
 
 export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
@@ -50,6 +53,8 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     superChargePerHit: 0.14,
     superRange: 660,
     superSize: 19.5,
+    sprite: 'blaster',
+    spriteScale: 52,
   },
   charger: {
     id: 'charger',
@@ -72,6 +77,8 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     superChargePerHit: 0.16,
     superRange: 442,
     superSize: 16.5,
+    sprite: 'charger',
+    spriteScale: 48,
   },
   tank: {
     id: 'tank',
@@ -97,6 +104,9 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     superChargePerHit: 0.11,
     superRange: 624,
     superSize: 42,
+    sprite: 'tank',
+    spriteScale: 64,
+    barrelSprite: 'tank-barrel',
   },
 }
 

@@ -63,6 +63,14 @@ Options: `--n` duels per pair (default 100), `--seed` (default 1), `--pairs a:b,
 
 Output includes a matchup table (wins, avg damage, hits/shot, supers, HP left), an archetype overview, and optionally a JSON blob with per-duel aggregates.
 
+## Sprites
+
+In-game character and tank sprites are from the [Kenney](https://kenney.nl/) packs **Top-down Shooter** and **Top-down Tanks**, by Kenney Vleugels, released under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Copies of the license files live in `public/assets/sprites/`. Attribution (Kenney or kenney.nl) is appreciated but not required.
+
+- `soldier1_stand.png` — Blaster
+- `hitman1_stand.png` — Charger
+- `tankGreen.png` + `barrelGreen.png` — Tank (body + aimable barrel)
+
 ## Deploying
 
 Pushing to `main` triggers `.github/workflows/deploy.yml`, which runs the tests, builds, and publishes to GitHub Pages automatically. The Vite config uses `base: './'` so assets resolve correctly under any repo subpath.

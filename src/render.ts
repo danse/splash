@@ -4,6 +4,7 @@ import { Projectile } from './entities/projectile'
 import { Pickup } from './entities/pickup'
 import { Rect } from './world/collision'
 import { TAU, easeOutCubic } from './core/math'
+import { getSprite, type Sprite } from './render/sprites'
 
 export interface RenderOpts {
   walls: Rect[]
@@ -115,6 +116,68 @@ export function inBush(brawler: Brawler, arena: Arena): boolean {
   return false
 }
 
+function drawBrawlerShape(ctx: CanvasRenderingContext2D, b: Brawler): void {
+  const base = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.4, b.r * 0.15, 0, 0, b.r * 1.05)
+  base.addColorStop(0, lighten(b.def.color, 55))
+  base.addColorStop(0.55, b.def.color)
+  base.addColorStop(1, shade(b.def.color, -35))
+
+  ctx.beginPath()
+  ctx.arc(0, 0, b.r, 0, TAU)
+  ctx.fillStyle = base
+  ctx.fill()
+
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'
+  ctx.stroke()
+
+  if (b.flash > 0) {
+    ctx.beginPath()
+    ctx.arc(0, 0, b.r, 0, TAU)
+    ctx.fillStyle = `rgba(255,255,255,${(b.flash / 0.14) * 0.8})`
+    ctx.fill()
+  }
+
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'
+  ctx.beginPath()
+  ctx.arc(-b.r * 0.45, -b.r * 0.3, 4.5, 0, TAU)
+  ctx.arc(b.r * 0.2, -b.r * 0.3, 4.5, 0, TAU)
+  ctx.fill()
+  ctx.fillStyle = '#fff'
+  ctx.beginPath()
+  ctx.arc(-b.r * 0.45, -b.r * 0.3, 1.8, 0, TAU)
+  ctx.arc(b.r * 0.2, -b.r * 0.3, 1.8, 0, TAU)
+  ctx.fill()
+}
+
+function drawBrawlerSprite(ctx: CanvasRenderingContext2D, b: Brawler, sprite: Sprite): void {
+  const def = b.def
+  const dw = def.spriteScale
+  const dh = (dw * sprite.h) / sprite.w
+  if (def.barrelSprite) {
+    ctx.drawImage(sprite.img, -dw / 2, -dh / 2, dw, dh)
+    const barrel = getSprite(def.barrelSprite)
+    if (barrel) {
+      const scale = dw / sprite.w
+      ctx.save()
+      ctx.rotate(b.aimAngle + Math.PI / 2)
+      ctx.drawImage(barrel.img, (-barrel.w * scale) / 2, (-barrel.h * scale) / 2, barrel.w * scale, barrel.h * scale)
+      ctx.restore()
+    }
+  } else {
+    ctx.save()
+    ctx.rotate(b.aimAngle - Math.PI / 2)
+    ctx.drawImage(sprite.img, -dw / 2, -dh / 2, dw, dh)
+    ctx.restore()
+  }
+  if (b.flash > 0) {
+    ctx.beginPath()
+    ctx.arc(0, 0, b.r, 0, TAU)
+    ctx.fillStyle = `rgba(255,255,255,${(b.flash / 0.14) * 0.8})`
+    ctx.fill()
+  }
+}
+
 export function drawMeleeSwing(ctx: CanvasRenderingContext2D, b: Brawler): void {
   const def = b.def
   const arc = def.meleeArc ?? 1.9
@@ -165,41 +228,16 @@ export function drawBrawler(
   ctx.save()
   ctx.translate(b.pos.x, b.pos.y)
 
-  const base = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.4, b.r * 0.15, 0, 0, b.r * 1.05)
-  base.addColorStop(0, lighten(b.def.color, 55))
-  base.addColorStop(0.55, b.def.color)
-  base.addColorStop(1, shade(b.def.color, -35))
-
-  ctx.beginPath()
-  ctx.arc(0, 0, b.r, 0, TAU)
-  ctx.fillStyle = base
-  ctx.fill()
-
-  ctx.lineWidth = 3
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)'
-  ctx.stroke()
-
-  if (b.flash > 0) {
-    ctx.beginPath()
-    ctx.arc(0, 0, b.r, 0, TAU)
-    ctx.fillStyle = `rgba(255,255,255,${(b.flash / 0.14) * 0.8})`
-    ctx.fill()
+  const sprite = getSprite(b.def.sprite)
+  if (sprite) {
+    drawBrawlerSprite(ctx, b, sprite)
+  } else {
+    drawBrawlerShape(ctx, b)
   }
 
   if (b.def.melee && b.swingT > 0) {
     drawMeleeSwing(ctx, b)
   }
-
-  ctx.fillStyle = 'rgba(0,0,0,0.55)'
-  ctx.beginPath()
-  ctx.arc(-b.r * 0.45, -b.r * 0.3, 4.5, 0, TAU)
-  ctx.arc(b.r * 0.2, -b.r * 0.3, 4.5, 0, TAU)
-  ctx.fill()
-  ctx.fillStyle = '#fff'
-  ctx.beginPath()
-  ctx.arc(-b.r * 0.45, -b.r * 0.3, 1.8, 0, TAU)
-  ctx.arc(b.r * 0.2, -b.r * 0.3, 1.8, 0, TAU)
-  ctx.fill()
 
   if (b.isPlayer) {
     const pulse = Math.sin((opts.time ?? 0) * 3)
