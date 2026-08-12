@@ -1,5 +1,6 @@
 import { BRAWLER_DEFS, BrawlerDef } from '../entities/brawler'
 import { DIFFICULTIES, DEFAULT_DIFFICULTY, type DifficultyId } from '../entities/difficulty'
+import { APP_VERSION } from '../version'
 
 export interface MatchResult {
   won: boolean
@@ -38,8 +39,10 @@ export class Screens {
         <button class="btn ghost icon" id="btn-mute">🔊</button>
         <button class="btn ghost icon" id="btn-fs">⛶</button>
       </div>
+      <div class="version" id="app-version"></div>
     `
     app.appendChild(this.menu)
+    this.menu.querySelector('#app-version')!.textContent = `v${APP_VERSION}`
 
     this.select = document.createElement('div')
     this.select.className = 'screen hidden'

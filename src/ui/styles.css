@@ -84,6 +84,16 @@ body {
   max-width: 30ch;
 }
 
+.screen .version {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #5b6b8c;
+  user-select: none;
+}
+
 .btn {
   pointer-events: auto;
   border: none;
