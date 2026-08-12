@@ -29,6 +29,7 @@ export interface BrawlerDef {
   sprite: string
   spriteScale: number
   barrelSprite?: string
+  fireSprite?: string
 }
 
 export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
@@ -55,6 +56,7 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     superSize: 19.5,
     sprite: 'blaster',
     spriteScale: 52,
+    fireSprite: 'blaster-fire',
   },
   charger: {
     id: 'charger',
@@ -79,6 +81,7 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     superSize: 16.5,
     sprite: 'charger',
     spriteScale: 48,
+    fireSprite: 'charger-fire',
   },
   tank: {
     id: 'tank',
@@ -156,6 +159,7 @@ export class Brawler {
   deadProcessed = false
   aiming = false
   swingT = 0
+  fireFacingTimer = 0
   private firePressed = false
 
   constructor(def: BrawlerDef, x: number, y: number) {
@@ -199,7 +203,6 @@ export class Brawler {
     this.swingT = Math.max(0, this.swingT - dt / SWING_DURATION)
 
     this.aimAngle = ctrl.aimAngle
-    this.facing = angleLerp(this.facing, this.aimAngle, 1 - Math.pow(ANGLE_LERP_BASE, dt))
 
     if (this.dash.active) {
       this.dash.t -= dt
@@ -220,8 +223,22 @@ export class Brawler {
     if ((ctrl.fireOnce || ctrl.firing) && this.fireCd <= 0 && !this.dash.active) {
       this.firePressed = true
       this.fireCd = 1 / this.def.fireRate
+      this.fireFacingTimer = 0.2
     }
     if (this.def.melee && this.firePressed) this.swingT = 1
+
+    let targetFacing: number | null = null
+    if (this.fireFacingTimer > 0) {
+      targetFacing = this.aimAngle
+    } else if (ctrl.moveMag > 0.15) {
+      targetFacing = Math.atan2(ctrl.moveY, ctrl.moveX)
+    }
+
+    this.fireFacingTimer = Math.max(0, this.fireFacingTimer - dt)
+
+    if (targetFacing !== null) {
+      this.facing = angleLerp(this.facing, targetFacing, 1 - Math.pow(ANGLE_LERP_BASE, dt))
+    }
   }
 
   triggerSuper(): void {

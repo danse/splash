@@ -151,13 +151,18 @@ function drawBrawlerShape(ctx: CanvasRenderingContext2D, b: Brawler): void {
 
 function drawBrawlerSprite(ctx: CanvasRenderingContext2D, b: Brawler, sprite: Sprite): void {
   const def = b.def
+  const firing = b.fireFacingTimer > 0 && def.fireSprite
+  const bodySprite = firing ? (getSprite(def.fireSprite!) ?? sprite) : sprite
   const dw = def.spriteScale
-  const dh = (dw * sprite.h) / sprite.w
+  const dh = (dw * bodySprite.h) / bodySprite.w
   if (def.barrelSprite) {
-    ctx.drawImage(sprite.img, -dw / 2, -dh / 2, dw, dh)
+    ctx.save()
+    ctx.rotate(b.facing + Math.PI / 2)
+    ctx.drawImage(bodySprite.img, -dw / 2, -dh / 2, dw, dh)
+    ctx.restore()
     const barrel = getSprite(def.barrelSprite)
     if (barrel) {
-      const scale = dw / sprite.w
+      const scale = dw / bodySprite.w
       ctx.save()
       ctx.rotate(b.aimAngle + Math.PI / 2)
       ctx.drawImage(barrel.img, (-barrel.w * scale) / 2, (-barrel.h * scale) / 2, barrel.w * scale, barrel.h * scale)
@@ -165,8 +170,8 @@ function drawBrawlerSprite(ctx: CanvasRenderingContext2D, b: Brawler, sprite: Sp
     }
   } else {
     ctx.save()
-    ctx.rotate(b.aimAngle - Math.PI / 2)
-    ctx.drawImage(sprite.img, -dw / 2, -dh / 2, dw, dh)
+    ctx.rotate(b.facing)
+    ctx.drawImage(bodySprite.img, -dw / 2, -dh / 2, dw, dh)
     ctx.restore()
   }
   if (b.flash > 0) {

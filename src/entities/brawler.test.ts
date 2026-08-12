@@ -63,9 +63,20 @@ describe('Brawler movement', () => {
     expect(b.pos.y).toBeCloseTo(100, 3)
   })
 
-  it('rotates facing toward aim', () => {
-    b.update(1, idle({ aimAngle: Math.PI }))
+  it('faces the movement direction, not the aim, when moving', () => {
+    b.update(1 / 60, idle({ moveX: 1, moveY: 0, moveMag: 1, aimAngle: Math.PI }))
+    expect(b.facing).toBeCloseTo(0, 2)
+  })
+
+  it('faces aim direction while firing', () => {
+    b.update(1, idle({ aimAngle: Math.PI, firing: true }))
     expect(b.facing).toBeCloseTo(Math.PI, 2)
+  })
+
+  it('keeps facing when neither moving nor firing', () => {
+    b.facing = 1.5
+    b.update(1 / 60, idle({ aimAngle: Math.PI }))
+    expect(b.facing).toBeCloseTo(1.5, 2)
   })
 })
 

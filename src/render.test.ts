@@ -166,32 +166,50 @@ describe('melee rendering geometry', () => {
 })
 
 describe('sprite rendering', () => {
-  it('rotates a ranged brawler sprite toward the aim angle', () => {
+  it('rotates a ranged brawler sprite toward the facing direction', () => {
     setSpriteForTest('blaster', 36, 43)
     const { ctx, rotates, drawImages } = makeRecorder()
     const blaster = new Brawler(BRAWLER_DEFS.blaster, 200, 200)
-    blaster.aimAngle = Math.PI / 3
+    blaster.facing = Math.PI / 3
 
     drawBrawler(ctx, blaster, emptyArena, { showHealthBars: false })
 
     const body = drawImages.find((d) => d.dw === BRAWLER_DEFS.blaster.spriteScale)
     expect(body).toBeDefined()
-    expect(rotates.some((r) => approx(r, Math.PI / 3 - Math.PI / 2))).toBe(true)
+    expect(rotates.some((r) => approx(r, Math.PI / 3))).toBe(true)
   })
 
-  it('draws the tank body upright with a barrel rotated to the aim angle', () => {
+  it('rotates tank body to facing and barrel to aim angle independently', () => {
     setSpriteForTest('tank', 75, 70)
     setSpriteForTest('tank-barrel', 16, 50)
     const { ctx, rotates, drawImages } = makeRecorder()
     const tank = new Brawler(BRAWLER_DEFS.tank, 400, 300)
+    tank.facing = Math.PI / 4
     tank.aimAngle = 0
 
     drawBrawler(ctx, tank, emptyArena, { showHealthBars: false })
 
     const body = drawImages.find((d) => d.dw === BRAWLER_DEFS.tank.spriteScale)
     expect(body).toBeDefined()
-    expect(body!.dx).toBe(-BRAWLER_DEFS.tank.spriteScale / 2)
-    expect(rotates.some((r) => approx(r, Math.PI / 2))).toBe(true)
+    expect(rotates.some((r) => approx(r, Math.PI / 4 + Math.PI / 2))).toBe(true)
+    expect(rotates.some((r) => approx(r, 0 + Math.PI / 2))).toBe(true)
+  })
+
+  it('uses the gun sprite during the firing window', () => {
+    setSpriteForTest('blaster', 36, 43)
+    setSpriteForTest('blaster-fire', 52, 43)
+    const { ctx, drawImages } = makeRecorder()
+    const blaster = new Brawler(BRAWLER_DEFS.blaster, 200, 200)
+    blaster.facing = 0
+    blaster.fireFacingTimer = 0.1
+
+    drawBrawler(ctx, blaster, emptyArena, { showHealthBars: false })
+
+    // gun sprite is 52 wide, scaled to spriteScale=52 → dh=52*43/52=43
+    // stand sprite is 36 wide, scaled to spriteScale=52 → dh=52*43/36≈62
+    const gunDraw = drawImages.find((d) => d.dw === BRAWLER_DEFS.blaster.spriteScale)
+    expect(gunDraw).toBeDefined()
+    expect(gunDraw!.dh).toBeCloseTo(43, 0)
   })
 
   it('falls back to shapes when no sprite is loaded', () => {
