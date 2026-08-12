@@ -27,8 +27,8 @@ export async function preloadSprites(): Promise<void> {
   const list: Array<[string, string]> = [
     ['blaster', `${base}assets/sprites/soldier1_stand.png`],
     ['blaster-fire', `${base}assets/sprites/soldier1_gun.png`],
-    ['charger', `${base}assets/sprites/hitman1_stand.png`],
-    ['charger-fire', `${base}assets/sprites/hitman1_gun.png`],
+    ['charger', `${base}assets/sprites/robot1_stand.png`],
+    ['charger-fire', `${base}assets/sprites/robot1_gun.png`],
     ['tank', `${base}assets/sprites/tankGreen.png`],
     ['tank-barrel', `${base}assets/sprites/barrelGreen.png`],
   ]
