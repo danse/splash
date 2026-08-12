@@ -126,7 +126,6 @@ export function drawMeleeSwing(ctx: CanvasRenderingContext2D, b: Brawler): void 
   const fade = 1 - t
 
   ctx.save()
-  ctx.translate(b.pos.x, b.pos.y)
 
   ctx.globalAlpha = 0.18 * fade
   ctx.fillStyle = def.accent
@@ -271,7 +270,7 @@ export function drawBrawler(
 
 export function drawAimPointer(ctx: CanvasRenderingContext2D, b: Brawler, arena: Arena): void {
   const def = b.def
-  const range = def.projectileRange
+  const range = def.melee ? (def.meleeRange ?? 120) : def.projectileRange
   const size = def.projectileSize
   const a = b.aimAngle
   const cx = b.pos.x
@@ -315,8 +314,8 @@ export function drawAimPointer(ctx: CanvasRenderingContext2D, b: Brawler, arena:
       break
     }
     case 'boulder': {
-      const radius = b.r + 10 + range
-      const half = 0.2
+      const radius = def.melee ? range : b.r + 10 + range
+      const half = def.melee ? (def.meleeArc ?? 1.9) / 2 : 0.2
       ctx.globalAlpha = bodyAlpha
       ctx.strokeStyle = def.color
       ctx.lineWidth = Math.max(4, size * 1.6)
@@ -327,7 +326,7 @@ export function drawAimPointer(ctx: CanvasRenderingContext2D, b: Brawler, arena:
     }
   }
 
-  const tip = b.r + 10 + range
+  const tip = def.melee ? range : b.r + 10 + range
   ctx.globalAlpha = hidden ? 0.1 : 0.4
   ctx.fillStyle = def.accent
   ctx.beginPath()
