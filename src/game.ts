@@ -40,6 +40,7 @@ const MATCH_DURATION = 120
 const NUM_BOTS = 5
 const COUNTDOWN = 3.4
 const END_DELAY = 1.8
+const CAMERA_EDGE_MARGIN = 120
 
 export const MODES: Record<ModeId, GameMode> = {
   brawl: {
@@ -131,6 +132,7 @@ export class Game {
     this.ctx = this.canvas.getContext('2d')!
     this.input = new Input()
     this.camera = new Camera()
+    this.camera.marginPx = CAMERA_EDGE_MARGIN
     this.hud = new Hud(
       () => this.input.queueSuper(),
       () => this.exitToMenu(),

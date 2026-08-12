@@ -56,6 +56,47 @@ describe('Camera clamp', () => {
     for (let i = 0; i < 100; i++) cam.update(1 / 60)
     expect(cam.y).toBeCloseTo(1200, 3)
   })
+
+  describe('edge margin (keep the player clear of on-screen controls)', () => {
+    it('keeps the player 120px from the left screen edge when hugging the wall', () => {
+      const cam = new Camera()
+      cam.setViewport(1280, 720)
+      cam.marginPx = 120
+      cam.follow({ pos: { x: 0, y: 1200 } }, { x: 0, y: 0, w: 2400, h: 2400 })
+      for (let i = 0; i < 300; i++) cam.update(1 / 60)
+      const screenX = (0 - cam.x) * cam.scale + cam.viewW / 2
+      expect(screenX).toBeCloseTo(120, 2)
+    })
+
+    it('keeps the player 120px from the right screen edge when hugging the wall', () => {
+      const cam = new Camera()
+      cam.setViewport(1280, 720)
+      cam.marginPx = 120
+      cam.follow({ pos: { x: 2400, y: 1200 } }, { x: 0, y: 0, w: 2400, h: 2400 })
+      for (let i = 0; i < 300; i++) cam.update(1 / 60)
+      const screenX = (2400 - cam.x) * cam.scale + cam.viewW / 2
+      expect(cam.viewW - screenX).toBeCloseTo(120, 2)
+    })
+
+    it('keeps the player 120px from the bottom screen edge when hugging the wall', () => {
+      const cam = new Camera()
+      cam.setViewport(1280, 720)
+      cam.marginPx = 120
+      cam.follow({ pos: { x: 1200, y: 2400 } }, { x: 0, y: 0, w: 2400, h: 2400 })
+      for (let i = 0; i < 300; i++) cam.update(1 / 60)
+      const screenY = (2400 - cam.y) * cam.scale + cam.viewH / 2
+      expect(cam.viewH - screenY).toBeCloseTo(120, 2)
+    })
+
+    it('still pins the player to the screen edge with margin 0 (regression)', () => {
+      const cam = new Camera()
+      cam.setViewport(1280, 720)
+      cam.follow({ pos: { x: 0, y: 1200 } }, { x: 0, y: 0, w: 2400, h: 2400 })
+      for (let i = 0; i < 300; i++) cam.update(1 / 60)
+      const screenX = (0 - cam.x) * cam.scale + cam.viewW / 2
+      expect(screenX).toBeCloseTo(0, 2)
+    })
+  })
 })
 
 describe('Camera snap to far target', () => {

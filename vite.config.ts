@@ -8,4 +8,7 @@ export default defineConfig({
   build: {
     target: 'es2020',
   },
+  test: {
+    exclude: ['tests/**', '**/node_modules/**', '**/dist/**'],
+  },
 })

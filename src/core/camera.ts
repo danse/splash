@@ -9,6 +9,7 @@ export class Camera {
   scale = 1
   viewW = 0
   viewH = 0
+  marginPx = 0
   private target: { pos: { x: number; y: number } } | null = null
   private bounds: { x: number; y: number; w: number; h: number } | null = null
 
@@ -64,7 +65,8 @@ export class Camera {
     const { x, y, w, h } = this.bounds
     const hw = this.viewW / 2 / this.scale
     const hh = this.viewH / 2 / this.scale
-    this.x = w / 2 >= hw ? clamp(this.x, x + hw, x + w - hw) : x + w / 2
-    this.y = h / 2 >= hh ? clamp(this.y, y + hh, y + h - hh) : y + h / 2
+    const m = this.marginPx / this.scale
+    this.x = w / 2 > hw - m ? clamp(this.x, x + hw - m, x + w - hw + m) : x + w / 2
+    this.y = h / 2 > hh - m ? clamp(this.y, y + hh - m, y + h - hh + m) : y + h / 2
   }
 }
