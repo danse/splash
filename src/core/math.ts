@@ -30,10 +30,14 @@ export function angleTo(ax: number, ay: number, bx: number, by: number): number 
 }
 
 export function angleLerp(a: number, b: number, t: number): number {
-  let diff = (b - a) % TAU
+  return a + angleDiff(b, a) * t
+}
+
+export function angleDiff(a: number, b: number): number {
+  let diff = (a - b) % TAU
   if (diff > Math.PI) diff -= TAU
   if (diff < -Math.PI) diff += TAU
-  return a + diff * t
+  return diff
 }
 
 export function rand(min: number, max: number): number {

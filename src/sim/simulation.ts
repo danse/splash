@@ -6,7 +6,7 @@ import { Pickup, makePickup } from '../entities/pickup'
 import { generateArena, Arena } from '../world/arena'
 import { resolveCircle, circleRectCollide } from '../world/collision'
 import { sfx } from '../audio'
-import { dist2, dist, clamp, rand, TAU } from '../core/math'
+import { dist2, dist, clamp, rand, angleDiff } from '../core/math'
 import { EndGate } from '../core/endGate'
 
 export type SimPhase = 'countdown' | 'playing' | 'ended'
@@ -109,6 +109,7 @@ export class Simulation {
     this.spawnPoints.set(bot, { x: bx, y: by })
     if (this.brainSlots < this.cfg.attackers) {
       const brain = new BotBrain(bx, by, brainOpts)
+      brain.setArenaBounds(this.arena.width, this.arena.height)
       brain.stationary = this.cfg.dummyBots
       if (this.cfg.focusPlayer && this.player) brain.preferredTarget = this.player
       this.brains.set(bot, brain)
@@ -302,9 +303,7 @@ export class Simulation {
       const dy = target.pos.y - b.pos.y
       const d = Math.hypot(dx, dy)
       if (d > range + target.r) continue
-      let diff = Math.atan2(dy, dx) - b.aimAngle
-      while (diff > Math.PI) diff -= TAU
-      while (diff < -Math.PI) diff += TAU
+      const diff = angleDiff(Math.atan2(dy, dx), b.aimAngle)
       if (Math.abs(diff) <= arc / 2) {
         this.applyMeleeHit(b, target, dmg)
       }

@@ -34,6 +34,8 @@ export class BotBrain {
   private burstTimer = 0
   private burstFiring = true
   private engageTimer = 0
+  private arenaW = 2400
+  private arenaH = 2400
 
   constructor(x: number, y: number, opts: BrainOpts = {}) {
     this.wanderTarget.x = x
@@ -43,6 +45,32 @@ export class BotBrain {
     this.engageTimer = opts.engageDelay ?? 0
   }
 
+  setArenaBounds(w: number, h: number): void {
+    this.arenaW = w
+    this.arenaH = h
+  }
+
+  private pickTarget(self: Brawler, all: Brawler[], dt: number): Brawler | null {
+    if (this.engageTimer > 0) {
+      this.engageTimer -= dt
+      return null
+    }
+    if (this.preferredTarget && this.preferredTarget.alive) {
+      return this.preferredTarget
+    }
+    let best: Brawler | null = null
+    let bestD = Infinity
+    for (const b of all) {
+      if (b === self || !b.alive) continue
+      const d = dist(self.pos.x, self.pos.y, b.pos.x, b.pos.y)
+      if (d < bestD) {
+        bestD = d
+        best = b
+      }
+    }
+    return best
+  }
+
   think(
     self: Brawler,
     all: Brawler[],
@@ -50,28 +78,13 @@ export class BotBrain {
     dt: number,
     time: number,
   ): BrawlerControl {
-    let target: Brawler | null = null
-    let best = Infinity
-    if (this.engageTimer > 0) {
-      this.engageTimer -= dt
-    } else if (this.preferredTarget && this.preferredTarget.alive) {
-      target = this.preferredTarget
-    } else {
-      for (const b of all) {
-        if (b === self || !b.alive) continue
-        const d = dist(self.pos.x, self.pos.y, b.pos.x, b.pos.y)
-        if (d < best) {
-          best = d
-          target = b
-        }
-      }
-    }
+    const target = this.pickTarget(self, all, dt)
 
     this.wanderTimer -= dt
     if (this.wanderTimer <= 0) {
       this.wanderTarget = {
-        x: rand(140, 2260),
-        y: rand(140, 2260),
+        x: rand(140, this.arenaW - 140),
+        y: rand(140, this.arenaH - 140),
       }
       this.wanderTimer = rand(2, 4.5)
     }
