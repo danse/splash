@@ -45,6 +45,9 @@ export async function preloadAudio(): Promise<void> {
     ['ready', `${base}assets/audio/highUp.ogg`],
     ['win', `${base}assets/audio/threeTone1.ogg`],
     ['lose', `${base}assets/audio/lowThreeTone.ogg`],
+    ['click', `${base}assets/audio/click_001.ogg`],
+    ['back', `${base}assets/audio/back_001.ogg`],
+    ['confirm', `${base}assets/audio/confirmation_001.ogg`],
   ]
   await Promise.all(
     files.map(async ([name, url]) => {
@@ -156,5 +159,14 @@ export const sfx = {
   },
   lose(): void {
     playSound('lose', 0.4)
+  },
+  click(): void {
+    playSound('click', 0.4)
+  },
+  back(): void {
+    playSound('back', 0.35)
+  },
+  confirm(): void {
+    playSound('confirm', 0.4)
   },
 }

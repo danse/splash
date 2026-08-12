@@ -1,4 +1,5 @@
 import { Input } from '../core/input'
+import { sfx } from '../audio'
 
 const MAX_SUPER_REACH = 62
 
@@ -46,6 +47,7 @@ export class Hud {
     this.exitBtn.addEventListener('click', (e) => {
       e.preventDefault()
       e.stopPropagation()
+      sfx.back()
       onExit()
     })
 

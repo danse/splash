@@ -1,6 +1,7 @@
 import { BRAWLER_DEFS, BrawlerDef } from '../entities/brawler'
 import { DIFFICULTIES, DEFAULT_DIFFICULTY, type DifficultyId } from '../entities/difficulty'
 import { APP_VERSION } from '../version'
+import { sfx } from '../audio'
 
 export interface MatchResult {
   won: boolean
@@ -89,6 +90,7 @@ export class Screens {
       card.title = def.name
       card.innerHTML = `<span class="brawler-icon" style="background:${def.color}"><span class="glyph">${def.glyph}</span></span>`
       card.addEventListener('click', () => {
+        sfx.click()
         this.selected = def.id
         for (const c of cards) c.classList.toggle('selected', c === card)
         renderPreview(def)
@@ -123,6 +125,7 @@ export class Screens {
       b.dataset.diff = d.id
       b.textContent = d.label
       b.addEventListener('click', () => {
+        sfx.click()
         this.difficulty = d.id
         for (const other of diffBtns) other.classList.toggle('selected', other === b)
       })
@@ -131,6 +134,7 @@ export class Screens {
     }
 
     this.menu.querySelector('#btn-play')!.addEventListener('click', () => {
+      sfx.confirm()
       this.menu.classList.add('hidden')
       this.select.classList.remove('hidden')
     })
@@ -143,22 +147,27 @@ export class Screens {
       this.onFullscreen()
     })
     this.select.querySelector('#btn-fight')!.addEventListener('click', () => {
+      sfx.confirm()
       this.hideAll()
       this.onSelect(this.selected, this.difficulty)
     })
     this.select.querySelector('#btn-practice')!.addEventListener('click', () => {
+      sfx.confirm()
       this.hideAll()
       this.onPractice(this.selected, this.difficulty)
     })
     this.select.querySelector('#btn-back')!.addEventListener('click', () => {
+      sfx.back()
       this.select.classList.add('hidden')
       this.menu.classList.remove('hidden')
     })
     this.results.querySelector('#btn-again')!.addEventListener('click', () => {
+      sfx.confirm()
       this.hideAll()
       this.onRestart()
     })
     this.results.querySelector('#btn-home')!.addEventListener('click', () => {
+      sfx.back()
       this.onMenu()
     })
   }
