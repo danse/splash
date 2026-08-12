@@ -121,6 +121,7 @@ export interface DashState {
 }
 
 export const SWING_DURATION = 0.4
+const ANGLE_LERP_BASE = 0.0001
 
 export interface BrawlerControl {
   moveX: number
@@ -198,7 +199,7 @@ export class Brawler {
     this.swingT = Math.max(0, this.swingT - dt / SWING_DURATION)
 
     this.aimAngle = ctrl.aimAngle
-    this.facing = angleLerp(this.facing, this.aimAngle, 1 - Math.pow(0.0001, dt))
+    this.facing = angleLerp(this.facing, this.aimAngle, 1 - Math.pow(ANGLE_LERP_BASE, dt))
 
     if (this.dash.active) {
       this.dash.t -= dt

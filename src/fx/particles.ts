@@ -13,7 +13,7 @@ interface Particle {
   grav: number
   rot: number
   vr: number
-  kind: 'spark' | 'circle' | 'shard' | 'ring'
+  kind: 'spark' | 'shard' | 'ring'
 }
 
 interface FloatText {
@@ -120,7 +120,7 @@ export class FX {
         grav: 0,
         rot: 0,
         vr: 0,
-        kind: 'circle',
+        kind: 'spark',
       })
     }
   }

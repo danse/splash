@@ -9,7 +9,6 @@ export interface Pickup {
   active: boolean
   respawn: number
   pulse: number
-  takenAt: number
 }
 
 export function makePickup(x: number, y: number, kind: PickupKind, amount: number): Pickup {
@@ -22,6 +21,5 @@ export function makePickup(x: number, y: number, kind: PickupKind, amount: numbe
     active: true,
     respawn: 0,
     pulse: Math.random() * 10,
-    takenAt: 0,
   }
 }

@@ -155,13 +155,19 @@ export class Input {
     this.paintStick(stick)
   }
 
+  private stickDom(stick: Stick): { base: HTMLDivElement; knob: HTMLDivElement } {
+    return stick === this.state.move
+      ? { base: this.moveBase, knob: this.moveKnob }
+      : { base: this.aimBase, knob: this.aimKnob }
+  }
+
   private releaseStick(stick: Stick): void {
     stick.active = false
     stick.id = -1
     stick.dx = 0
     stick.dy = 0
     stick.mag = 0
-    const base = stick === this.state.move ? this.moveBase : this.aimBase
+    const { base } = this.stickDom(stick)
     base.classList.add('hidden')
     if (stick === this.state.aim && !this.aimDragged && performance.now() - this.aimDownAt < TAP_MS) {
       this.aimTapQueued = true
@@ -190,11 +196,10 @@ export class Input {
 
   private applyPaint(stick: Stick): void {
     if (!stick.active) return
-    const base = stick === this.state.move ? this.moveBase : this.aimBase
+    const { base, knob } = this.stickDom(stick)
     base.classList.remove('hidden')
     base.style.left = `${stick.ox - 64}px`
     base.style.top = `${stick.oy - 64}px`
-    const knob = stick === this.state.move ? this.moveKnob : this.aimKnob
     const kx = (stick.dx / MAX_REACH) * 64
     const ky = (stick.dy / MAX_REACH) * 64
     knob.style.transform = `translate3d(calc(-50% + ${kx}px), calc(-50% + ${ky}px), 0)`

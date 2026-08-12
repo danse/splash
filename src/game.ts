@@ -390,7 +390,7 @@ export class Game {
     }
     const renderBrawler = (b: Brawler): void => {
       if (b.aiming) drawAimPointer(ctx, b, this.sim.arena)
-      drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true, time: this.sim.time })
+      drawBrawler(ctx, b, this.sim.arena, { showHealthBars: true, time: this.sim.time })
     }
     for (const b of hidden) renderBrawler(b)
     drawBushes(ctx, this.sim.arena)

@@ -7,7 +7,6 @@ import { TAU, easeOutCubic } from './core/math'
 import { getSprite, type Sprite } from './render/sprites'
 
 export interface RenderOpts {
-  walls: Rect[]
   showHealthBars: boolean
   time?: number
 }

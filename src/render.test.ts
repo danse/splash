@@ -64,7 +64,7 @@ describe('melee rendering geometry', () => {
     tank.aimAngle = Math.PI / 3
     tank.swingT = 0.5
 
-    drawBrawler(ctx, tank, emptyArena, { walls: [], showHealthBars: false })
+    drawBrawler(ctx, tank, emptyArena, { showHealthBars: false })
 
     const atPivot = translateCalls.filter(([x, y]) => x === 400 && y === 300)
     expect(atPivot).toHaveLength(1)
@@ -76,7 +76,7 @@ describe('melee rendering geometry', () => {
     tank.aimAngle = Math.PI / 3
     tank.swingT = 0.5
 
-    drawBrawler(ctx, tank, emptyArena, { walls: [], showHealthBars: false })
+    drawBrawler(ctx, tank, emptyArena, { showHealthBars: false })
 
     const swingSlice = arcs.filter(([, , r]) => approx(r, TANK_RANGE))
     expect(swingSlice.length).toBeGreaterThan(0)
@@ -172,7 +172,7 @@ describe('sprite rendering', () => {
     const blaster = new Brawler(BRAWLER_DEFS.blaster, 200, 200)
     blaster.aimAngle = Math.PI / 3
 
-    drawBrawler(ctx, blaster, emptyArena, { walls: [], showHealthBars: false })
+    drawBrawler(ctx, blaster, emptyArena, { showHealthBars: false })
 
     const body = drawImages.find((d) => d.dw === BRAWLER_DEFS.blaster.spriteScale)
     expect(body).toBeDefined()
@@ -186,7 +186,7 @@ describe('sprite rendering', () => {
     const tank = new Brawler(BRAWLER_DEFS.tank, 400, 300)
     tank.aimAngle = 0
 
-    drawBrawler(ctx, tank, emptyArena, { walls: [], showHealthBars: false })
+    drawBrawler(ctx, tank, emptyArena, { showHealthBars: false })
 
     const body = drawImages.find((d) => d.dw === BRAWLER_DEFS.tank.spriteScale)
     expect(body).toBeDefined()
@@ -198,7 +198,7 @@ describe('sprite rendering', () => {
     const { ctx, arcs, drawImages } = makeRecorder()
     const blaster = new Brawler(BRAWLER_DEFS.blaster, 200, 200)
 
-    drawBrawler(ctx, blaster, emptyArena, { walls: [], showHealthBars: false })
+    drawBrawler(ctx, blaster, emptyArena, { showHealthBars: false })
 
     expect(drawImages).toHaveLength(0)
     expect(arcs.filter(([, , r]) => approx(r, blaster.r)).length).toBeGreaterThan(0)
@@ -212,7 +212,7 @@ describe('sprite rendering', () => {
     tank.aimAngle = Math.PI / 3
     tank.swingT = 0.5
 
-    drawBrawler(ctx, tank, emptyArena, { walls: [], showHealthBars: false })
+    drawBrawler(ctx, tank, emptyArena, { showHealthBars: false })
 
     const body = drawImages.find((d) => d.dw === BRAWLER_DEFS.tank.spriteScale)
     expect(body).toBeDefined()
