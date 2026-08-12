@@ -20,6 +20,10 @@ export class Hud {
   private superPressId = -1
   private superPressX = 0
   private superPressY = 0
+  // superDown tracks the actual finger-down position so a tap near the edge
+  // of the button doesn't get mistaken for a drag by the implied pointermove
+  private superDownX = 0
+  private superDownY = 0
   private superDragged = false
   private superAngle = 0
 
@@ -88,6 +92,8 @@ export class Hud {
     this.superPressId = e.pointerId
     this.superPressX = r.left + r.width / 2
     this.superPressY = r.top + r.height / 2
+    this.superDownX = e.clientX
+    this.superDownY = e.clientY
     this.superDragged = false
     this.superAngle = 0
     this.input.beginSuperAim()
@@ -98,8 +104,8 @@ export class Hud {
 
   private onSuperMove = (e: PointerEvent): void => {
     if (e.pointerId !== this.superPressId) return
-    const dx = e.clientX - this.superPressX
-    const dy = e.clientY - this.superPressY
+    const dx = e.clientX - this.superDownX
+    const dy = e.clientY - this.superDownY
     const dist = Math.hypot(dx, dy)
     if (dist > 10) this.superDragged = true
     const angle = Math.atan2(dy, dx)

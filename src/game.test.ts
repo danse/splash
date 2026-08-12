@@ -374,7 +374,7 @@ describe('Player super aim', () => {
     expect(player.aimAngle).toBeCloseTo(Math.PI / 4, 2)
   })
 
-  it('charger tap-super dashes toward the closest enemy', () => {
+  it('charger tap-super while moving (no aim stick) dashes at the closest enemy', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5)
     const { game, update } = makeGame()
     game.startMatch('charger', 'practice')
@@ -382,26 +382,74 @@ describe('Player super aim', () => {
     const player = game.player
     player.chargeSuper(1)
 
+    // kill all bots except one, place it east of the player
+    for (const b of game.bots) b.alive = false
+    const enemy = game.bots[0]
+    enemy.alive = true
+    enemy.pos.x = player.pos.x + 200
+    enemy.pos.y = player.pos.y
+
+    // move the player DOWN with the LEFT stick — no aim stick active
+    touchDown(200, 500, 1)
+    touchMove(200, 600, 1)
+    for (let i = 0; i < 10; i++) update(1 / 60)
+    expect(player.aiming).toBe(false)
+
+    // aimAngle should NOT have drifted toward the move direction (down)
+    const moveAngle = Math.PI / 2
+    expect(Math.abs(player.aimAngle - moveAngle)).toBeGreaterThan(0.3)
+
+    // expected: angle from player to the ONLY alive enemy
+    const expectedAngle = Math.atan2(enemy.pos.y - player.pos.y, enemy.pos.x - player.pos.x)
+    // the dash must NOT go toward the move direction
+    expect(Math.abs(expectedAngle - moveAngle)).toBeGreaterThan(0.5)
+
+    // tap super
+    const btn = document.querySelector('.super-btn') as HTMLButtonElement
+    btn.dispatchEvent(makePointerEvent('pointerdown', { clientX: 0, clientY: 0, pointerId: 3 }))
+    window.dispatchEvent(makePointerEvent('pointerup', { pointerId: 3 }))
+    update(1 / 60)
+
+    expect(player.superCharge).toBe(0)
+    expect(player.dash.active).toBe(true)
+    expect(player.dash.dirX).toBeCloseTo(Math.cos(expectedAngle), 2)
+    expect(player.dash.dirY).toBeCloseTo(Math.sin(expectedAngle), 2)
+  })
+
+  it('charger tap-super while moving (no aim stick) dashes at the closest enemy even while the aim stick is held', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('charger', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    player.chargeSuper(1)
+
+    // hold the aim stick leftward
+    touchDown(800, 500, 2)
+    touchMove(700, 500, 2)
+    update(1 / 60)
+    expect(player.aiming).toBe(true)
+
+    // find closest enemy
     let closest: Brawler | null = null
     let bestD = Infinity
     for (const b of game.brawlers) {
       if (b === player || !b.alive) continue
       const d = Math.hypot(b.pos.x - player.pos.x, b.pos.y - player.pos.y)
-      if (d < bestD) {
-        bestD = d
-        closest = b
-      }
+      if (d < bestD) { bestD = d; closest = b }
     }
     expect(closest).not.toBeNull()
     const expectedAngle = Math.atan2(closest!.pos.y - player.pos.y, closest!.pos.x - player.pos.x)
 
+    // tap super with a different finger while still holding the stick
     const btn = document.querySelector('.super-btn') as HTMLButtonElement
-    btn.dispatchEvent(makePointerEvent('pointerdown', { clientX: 0, clientY: 0 }))
-    window.dispatchEvent(makePointerEvent('pointerup', { pointerId: 1 }))
+    btn.dispatchEvent(makePointerEvent('pointerdown', { clientX: 0, clientY: 0, pointerId: 3 }))
+    window.dispatchEvent(makePointerEvent('pointerup', { pointerId: 3 }))
     update(1 / 60)
 
     expect(player.superCharge).toBe(0)
     expect(player.dash.active).toBe(true)
+    // dash must go toward the closest enemy, not toward the stick (which points left, ~PI)
     expect(player.dash.dirX).toBeCloseTo(Math.cos(expectedAngle), 2)
     expect(player.dash.dirY).toBeCloseTo(Math.sin(expectedAngle), 2)
   })
