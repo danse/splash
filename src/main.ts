@@ -1,6 +1,7 @@
 import { Game, type ModeId } from './game'
 import { Screens } from './ui/screens'
 import { setMuted } from './audio'
+import { preloadAudio } from './audio'
 import { preloadSprites } from './render/sprites'
 import { initDeviceGate, isTouchDevice, lockLandscape, requestFullscreen, toggleFullscreen } from './device'
 import { DEFAULT_DIFFICULTY, type DifficultyId } from './entities/difficulty'
@@ -9,6 +10,7 @@ const app = document.getElementById('app')!
 
 initDeviceGate()
 preloadSprites().catch(() => {})
+preloadAudio().catch(() => {})
 
 if (isTouchDevice()) {
   const canvas = document.createElement('canvas')

@@ -26,6 +26,50 @@ export function isMuted(): boolean {
   return muted
 }
 
+const sfxBuffers = new Map<string, AudioBuffer>()
+
+export async function preloadAudio(): Promise<void> {
+  initAudio()
+  if (!ctx) return
+  const base = import.meta.env.BASE_URL ?? '/'
+  const files: [string, string][] = [
+    ['shoot', `${base}assets/audio/laser1.ogg`],
+    ['swing', `${base}assets/audio/impactWood_medium_000.ogg`],
+    ['super', `${base}assets/audio/phaserUp1.ogg`],
+    ['hit', `${base}assets/audio/impactTin_medium_000.ogg`],
+    ['hurt', `${base}assets/audio/impactBell_heavy_000.ogg`],
+    ['dashHit', `${base}assets/audio/impactGlass_heavy_000.ogg`],
+    ['kill', `${base}assets/audio/spaceTrash1.ogg`],
+    ['death', `${base}assets/audio/lowDown.ogg`],
+    ['pickup', `${base}assets/audio/powerUp1.ogg`],
+    ['ready', `${base}assets/audio/highUp.ogg`],
+    ['win', `${base}assets/audio/threeTone1.ogg`],
+    ['lose', `${base}assets/audio/lowThreeTone.ogg`],
+  ]
+  await Promise.all(
+    files.map(async ([name, url]) => {
+      const resp = await fetch(url)
+      const buf = await resp.arrayBuffer()
+      const audioBuffer = await ctx!.decodeAudioData(buf)
+      sfxBuffers.set(name, audioBuffer)
+    })
+  )
+}
+
+function playSound(name: string, vol = 0.5, delay = 0, rate = 1): void {
+  if (!ctx || !master || muted) return
+  const buffer = sfxBuffers.get(name)
+  if (!buffer) return
+  const src = ctx.createBufferSource()
+  src.buffer = buffer
+  src.playbackRate.value = rate
+  const g = ctx.createGain()
+  g.gain.setValueAtTime(vol, ctx.currentTime + delay)
+  src.connect(g)
+  g.connect(master)
+  src.start(ctx.currentTime + delay)
+}
+
 function tone(
   freq: number,
   dur: number,
@@ -74,56 +118,43 @@ function noise(dur: number, vol: number, filterFreq: number, slideTo?: number, d
 
 export const sfx = {
   shoot(colorIdx = 0): void {
-    tone(700 + colorIdx * 120, 0.12, 'triangle', 0.18, 220)
-    noise(0.05, 0.08, 3000, 800)
+    playSound('shoot', 0.45, 0, 1 + colorIdx * 0.1)
   },
-  swing(colorIdx = 0): void {
-    noise(0.14, 0.2, 2000 + colorIdx * 300, 500)
-    tone(320 + colorIdx * 50, 0.16, 'square', 0.14, 140)
+  swing(_colorIdx = 0): void {
+    playSound('swing', 0.4)
   },
-  super(colorIdx = 0): void {
-    tone(320 + colorIdx * 60, 0.4, 'sawtooth', 0.3, 90)
-    noise(0.35, 0.3, 2000, 200)
+  super(_colorIdx = 0): void {
+    playSound('super', 0.5)
   },
   hit(): void {
-    tone(180, 0.1, 'square', 0.16, 90)
-    noise(0.06, 0.14, 1200, 300)
+    playSound('hit', 0.35)
   },
   hurt(): void {
-    tone(140, 0.16, 'sawtooth', 0.22, 70)
+    playSound('hurt', 0.4)
   },
   dash(): void {
     noise(0.32, 0.28, 5000, 300)
     tone(260, 0.3, 'sawtooth', 0.12, 520)
   },
   pickup(): void {
-    tone(520, 0.09, 'triangle', 0.2)
-    tone(780, 0.12, 'triangle', 0.2, undefined, 0.08)
+    playSound('pickup', 0.4)
   },
   kill(): void {
-    tone(300, 0.5, 'sawtooth', 0.3, 50)
-    noise(0.5, 0.34, 800, 120)
+    playSound('kill', 0.45)
   },
   death(): void {
-    noise(0.7, 0.4, 400, 60)
-    tone(120, 0.5, 'square', 0.24, 40)
+    playSound('death', 0.4)
   },
   dashHit(): void {
-    tone(520, 0.12, 'square', 0.22, 180)
-    noise(0.1, 0.2, 1600, 300)
+    playSound('dashHit', 0.4)
   },
   ready(): void {
-    tone(440, 0.12, 'triangle', 0.2)
-    tone(660, 0.12, 'triangle', 0.2, undefined, 0.09)
+    playSound('ready', 0.4)
   },
   win(): void {
-    tone(392, 0.16, 'triangle', 0.25)
-    tone(523, 0.16, 'triangle', 0.25, undefined, 0.14)
-    tone(659, 0.3, 'triangle', 0.25, undefined, 0.28)
+    playSound('win', 0.45)
   },
   lose(): void {
-    tone(330, 0.25, 'triangle', 0.22)
-    tone(262, 0.25, 'triangle', 0.22, undefined, 0.22)
-    tone(196, 0.5, 'triangle', 0.22, undefined, 0.44)
+    playSound('lose', 0.4)
   },
 }
