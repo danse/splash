@@ -82,6 +82,15 @@ describe('Screens transitions', () => {
     expect(selected).toBe('tank')
   })
 
+  it('updates the preview panel when a brawler is selected', () => {
+    byId('btn-play').click()
+    expect(byId('preview-name').textContent).toBe('Blaster')
+    const tank = document.querySelector('.brawler-card[data-id="tank"]') as HTMLElement
+    tank.click()
+    expect(byId('preview-name').textContent).toBe('Tank')
+    expect(byId('preview-desc').textContent).toContain('Boulder')
+  })
+
   it('Back button on select returns to the menu', () => {
     byId('btn-play').click()
     byId('btn-back').click()

@@ -39,7 +39,7 @@ test.describe('reference size: 1280x720 landscape (touch)', () => {
   test('menu renders at reference size', async ({ page }) => {
     await page.goto('/')
     await expect(page.locator('#btn-play')).toBeVisible()
-    await expect(page).toHaveScreenshot('menu-1280x720.png')
+    await expect(page).toHaveScreenshot('menu-1280x720.png', { mask: [page.locator('#app-version')] })
   })
 
   test('select screen fits without overflow and renders', async ({ page }) => {

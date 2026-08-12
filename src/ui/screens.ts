@@ -48,7 +48,16 @@ export class Screens {
     this.select.className = 'screen hidden'
     this.select.innerHTML = `
       <h1 style="font-size:clamp(30px,8vw,48px)">Pick your brawler</h1>
-      <div class="brawler-grid" id="brawler-grid"></div>
+      <div class="picker">
+        <div class="preview" id="preview">
+          <div class="preview-icon" id="preview-icon"><span class="glyph"></span></div>
+          <div class="preview-info">
+            <div class="preview-name" id="preview-name"></div>
+            <div class="preview-desc" id="preview-desc"></div>
+          </div>
+        </div>
+        <div class="brawler-strip" id="brawler-strip"></div>
+      </div>
       <div class="row">
         <span class="diff-label">Bot difficulty</span>
         <span class="diff-btns" id="diff-row"></span>
@@ -61,20 +70,34 @@ export class Screens {
     `
     app.appendChild(this.select)
 
-    const grid = this.select.querySelector('#brawler-grid')!
+    const strip = this.select.querySelector('#brawler-strip')!
+    const previewIcon = this.select.querySelector('#preview-icon') as HTMLElement
+    const previewName = this.select.querySelector('#preview-name') as HTMLElement
+    const previewDesc = this.select.querySelector('#preview-desc') as HTMLElement
+    const cards: HTMLElement[] = []
+    const renderPreview = (def: BrawlerDef): void => {
+      previewIcon.style.background = def.color
+      previewIcon.querySelector('.glyph')!.textContent = def.glyph
+      previewName.textContent = def.name
+      previewDesc.textContent = statLine(def)
+    }
     for (const def of Object.values(BRAWLER_DEFS)) {
-      const card = document.createElement('div')
+      const card = document.createElement('button')
+      card.type = 'button'
       card.className = 'brawler-card'
       card.dataset.id = def.id
-      card.innerHTML = `
-        <div class="brawler-icon" style="background:${def.color}">
-          <span class="glyph">${def.glyph}</span>
-        </div>
-        <div class="name">${def.name}</div>
-        <div class="desc">${statLine(def)}</div>
-      `
-      grid.appendChild(card)
+      card.title = def.name
+      card.innerHTML = `<span class="brawler-icon" style="background:${def.color}"><span class="glyph">${def.glyph}</span></span>`
+      card.addEventListener('click', () => {
+        this.selected = def.id
+        for (const c of cards) c.classList.toggle('selected', c === card)
+        renderPreview(def)
+      })
+      cards.push(card)
+      strip.appendChild(card)
     }
+    renderPreview(BRAWLER_DEFS[this.selected])
+    cards[0].classList.add('selected')
 
     this.results = document.createElement('div')
     this.results.className = 'screen hidden'
@@ -91,14 +114,6 @@ export class Screens {
     this.resultsStats = this.results.querySelector('#results-stats') as HTMLElement
 
     this.mutedBtn = this.menu.querySelector('#btn-mute') as HTMLElement
-    this.select.querySelectorAll('.brawler-card').forEach((card) => {
-      card.addEventListener('click', () => {
-        this.selected = (card as HTMLElement).dataset.id!
-        this.select.querySelectorAll('.brawler-card').forEach((c) => c.classList.remove('selected'))
-        card.classList.add('selected')
-      })
-    })
-    ;(this.select.querySelector('.brawler-card') as HTMLElement).classList.add('selected')
 
     const diffRow = this.select.querySelector('#diff-row')!
     const diffBtns: HTMLElement[] = []
