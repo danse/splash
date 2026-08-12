@@ -373,6 +373,68 @@ describe('Player super aim', () => {
     expect(player.superCharge).toBe(0)
     expect(player.aimAngle).toBeCloseTo(Math.PI / 4, 2)
   })
+
+  it('charger tap-super dashes toward the closest enemy', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('charger', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    player.chargeSuper(1)
+
+    let closest: Brawler | null = null
+    let bestD = Infinity
+    for (const b of game.brawlers) {
+      if (b === player || !b.alive) continue
+      const d = Math.hypot(b.pos.x - player.pos.x, b.pos.y - player.pos.y)
+      if (d < bestD) {
+        bestD = d
+        closest = b
+      }
+    }
+    expect(closest).not.toBeNull()
+    const expectedAngle = Math.atan2(closest!.pos.y - player.pos.y, closest!.pos.x - player.pos.x)
+
+    const btn = document.querySelector('.super-btn') as HTMLButtonElement
+    btn.dispatchEvent(makePointerEvent('pointerdown', { clientX: 0, clientY: 0 }))
+    window.dispatchEvent(makePointerEvent('pointerup', { pointerId: 1 }))
+    update(1 / 60)
+
+    expect(player.superCharge).toBe(0)
+    expect(player.dash.active).toBe(true)
+    expect(player.dash.dirX).toBeCloseTo(Math.cos(expectedAngle), 2)
+    expect(player.dash.dirY).toBeCloseTo(Math.sin(expectedAngle), 2)
+  })
+
+  it('tank tap-super boulder goes toward the closest enemy', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('tank', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    player.chargeSuper(1)
+
+    let closest: Brawler | null = null
+    let bestD = Infinity
+    for (const b of game.brawlers) {
+      if (b === player || !b.alive) continue
+      const d = Math.hypot(b.pos.x - player.pos.x, b.pos.y - player.pos.y)
+      if (d < bestD) {
+        bestD = d
+        closest = b
+      }
+    }
+    expect(closest).not.toBeNull()
+    const expectedAngle = Math.atan2(closest!.pos.y - player.pos.y, closest!.pos.x - player.pos.x)
+
+    const btn = document.querySelector('.super-btn') as HTMLButtonElement
+    btn.dispatchEvent(makePointerEvent('pointerdown', { clientX: 0, clientY: 0 }))
+    window.dispatchEvent(makePointerEvent('pointerup', { pointerId: 1 }))
+    update(1 / 60)
+
+    expect(player.superCharge).toBe(0)
+    expect(player.aimAngle).toBeCloseTo(expectedAngle, 2)
+  })
 })
 
 describe('Tank melee attack', () => {
