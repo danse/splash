@@ -45,6 +45,8 @@ export class Input {
   private aimBase: HTMLDivElement
   private aimKnob!: HTMLDivElement
   private superQueued = false
+  private superAngle: number | null = null
+  superAim = { active: false, angle: 0 }
   private aimTapQueued = false
   private aimDownAt = 0
   private aimDragged = false
@@ -208,16 +210,32 @@ export class Input {
     return { x: 0, y: 0, mag: 0 }
   }
 
-  queueSuper(): void {
+  queueSuper(angle?: number): void {
     this.superQueued = true
+    this.superAngle = angle ?? null
   }
 
-  consumeSuper(): boolean {
+  beginSuperAim(): void {
+    this.superAim.active = true
+    this.superAim.angle = 0
+  }
+
+  aimSuper(angle: number): void {
+    this.superAim.angle = angle
+  }
+
+  endSuperAim(): void {
+    this.superAim.active = false
+  }
+
+  consumeSuper(): { queued: boolean; angle: number | null } {
     if (this.superQueued) {
       this.superQueued = false
-      return true
+      const angle = this.superAngle
+      this.superAngle = null
+      return { queued: true, angle }
     }
-    return false
+    return { queued: false, angle: null }
   }
 
   consumeAimTap(): boolean {

@@ -24,6 +24,8 @@ export interface BrawlerDef {
   superType: SuperType
   superDamage: number
   superChargePerHit: number
+  superRange: number
+  superSize: number
 }
 
 export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
@@ -46,6 +48,8 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     superType: 'storm',
     superDamage: 540,
     superChargePerHit: 0.14,
+    superRange: 660,
+    superSize: 19.5,
   },
   charger: {
     id: 'charger',
@@ -66,6 +70,8 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     superType: 'dash',
     superDamage: 640,
     superChargePerHit: 0.16,
+    superRange: 442,
+    superSize: 16.5,
   },
   tank: {
     id: 'tank',
@@ -89,6 +95,8 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     superType: 'boulder',
     superDamage: 900,
     superChargePerHit: 0.11,
+    superRange: 624,
+    superSize: 42,
   },
 }
 
@@ -216,13 +224,14 @@ export class Brawler {
     switch (this.def.superType) {
       case 'dash': {
         const speed = 1300
+        const duration = this.def.superRange / speed
         this.dash = {
           active: true,
           dirX: Math.cos(this.aimAngle),
           dirY: Math.sin(this.aimAngle),
           speed,
-          t: 0.34,
-          duration: 0.34,
+          t: duration,
+          duration,
           hitIds: new Set(),
         }
         break

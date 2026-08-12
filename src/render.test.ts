@@ -96,4 +96,56 @@ describe('melee rendering geometry', () => {
     const tip = arcs.find(([x, y]) => approx(Math.hypot(x - 100, y - 100), expectedTip))
     expect(tip).toBeDefined()
   })
+
+  it('draws the tank super aim as an arc at the boulder range', () => {
+    const { ctx, arcs } = makeRecorder()
+    const tank = new Brawler(BRAWLER_DEFS.tank, 400, 300)
+    tank.aimAngle = Math.PI / 3
+
+    drawAimPointer(ctx, tank, emptyArena, 'super')
+
+    const pointerArc = arcs.find(([, , , s, e]) => approx((s + e) / 2, Math.PI / 3) && e - s < Math.PI)
+    expect(pointerArc).toBeDefined()
+    expectNear(pointerArc![2], BRAWLER_DEFS.tank.superRange)
+
+    const tip = arcs.find(([x, y]) => approx(Math.hypot(x - 400, y - 300), BRAWLER_DEFS.tank.superRange))
+    expect(tip).toBeDefined()
+  })
+
+  it('draws the blaster super aim beam out to the storm range', () => {
+    const { ctx, arcs } = makeRecorder()
+    const blaster = new Brawler(BRAWLER_DEFS.blaster, 100, 100)
+    blaster.aimAngle = 0
+
+    drawAimPointer(ctx, blaster, emptyArena, 'super')
+
+    const expectedTip = blaster.r + 10 + BRAWLER_DEFS.blaster.superRange
+    const tip = arcs.find(([x, y]) => approx(Math.hypot(x - 100, y - 100), expectedTip))
+    expect(tip).toBeDefined()
+  })
+
+  it('draws the charger super aim wedge out to the dash distance', () => {
+    const { ctx, arcs } = makeRecorder()
+    const charger = new Brawler(BRAWLER_DEFS.charger, 100, 100)
+    charger.aimAngle = 0
+
+    drawAimPointer(ctx, charger, emptyArena, 'super')
+
+    const expectedTip = charger.r + 10 + BRAWLER_DEFS.charger.superRange
+    const tip = arcs.find(([x, y]) => approx(Math.hypot(x - 100, y - 100), expectedTip))
+    expect(tip).toBeDefined()
+  })
+
+  it('honors the angle override when the super joystick is dragged', () => {
+    const { ctx, arcs } = makeRecorder()
+    const blaster = new Brawler(BRAWLER_DEFS.blaster, 100, 100)
+    blaster.aimAngle = 0
+
+    drawAimPointer(ctx, blaster, emptyArena, 'super', Math.PI / 2)
+
+    const expectedTip = blaster.r + 10 + BRAWLER_DEFS.blaster.superRange
+    const tip = arcs.find(([x, y]) => approx(Math.hypot(x - 100, y - 100), expectedTip))
+    expect(tip).toBeDefined()
+    expectNear(tip![0], 100)
+  })
 })

@@ -268,11 +268,23 @@ export function drawBrawler(
   ctx.globalAlpha = 1
 }
 
-export function drawAimPointer(ctx: CanvasRenderingContext2D, b: Brawler, arena: Arena): void {
+export type AimKind = 'fire' | 'super'
+
+export function drawAimPointer(
+  ctx: CanvasRenderingContext2D,
+  b: Brawler,
+  arena: Arena,
+  kind: AimKind = 'fire',
+  angle?: number,
+): void {
   const def = b.def
-  const range = def.melee ? (def.meleeRange ?? 120) : def.projectileRange
-  const size = def.projectileSize
-  const a = b.aimAngle
+  const range = kind === 'super' ? def.superRange : def.melee ? (def.meleeRange ?? 120) : def.projectileRange
+  const size = kind === 'super' ? def.superSize : def.projectileSize
+  drawAimShape(ctx, b, arena, range, size, angle ?? b.aimAngle)
+}
+
+function drawAimShape(ctx: CanvasRenderingContext2D, b: Brawler, arena: Arena, range: number, size: number, a: number): void {
+  const def = b.def
   const cx = b.pos.x
   const cy = b.pos.y
   const hidden = inBush(b, arena)

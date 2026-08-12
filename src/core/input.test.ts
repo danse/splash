@@ -99,8 +99,32 @@ describe('Input multitouch', () => {
 describe('Input super', () => {
   it('queues and consumes the super exactly once', () => {
     input.queueSuper()
-    expect(input.consumeSuper()).toBe(true)
-    expect(input.consumeSuper()).toBe(false)
+    expect(input.consumeSuper()).toEqual({ queued: true, angle: null })
+    expect(input.consumeSuper()).toEqual({ queued: false, angle: null })
+  })
+
+  it('carries an explicit aim angle for drag-aimed supers', () => {
+    input.queueSuper(Math.PI / 4)
+    expect(input.consumeSuper()).toEqual({ queued: true, angle: Math.PI / 4 })
+  })
+
+  it('clears the stored aim angle once consumed', () => {
+    input.queueSuper(1)
+    input.consumeSuper()
+    expect(input.consumeSuper()).toEqual({ queued: false, angle: null })
+  })
+})
+
+describe('Input super aim', () => {
+  it('tracks the live aim angle while the super joystick is held', () => {
+    expect(input.superAim.active).toBe(false)
+    input.beginSuperAim()
+    expect(input.superAim.active).toBe(true)
+    expect(input.superAim.angle).toBe(0)
+    input.aimSuper(Math.PI / 3)
+    expect(input.superAim.angle).toBeCloseTo(Math.PI / 3, 5)
+    input.endSuperAim()
+    expect(input.superAim.active).toBe(false)
   })
 })
 

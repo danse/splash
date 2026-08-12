@@ -134,7 +134,7 @@ export class Game {
     this.camera = new Camera()
     this.camera.marginPx = CAMERA_EDGE_MARGIN
     this.hud = new Hud(
-      () => this.input.queueSuper(),
+      this.input,
       () => this.exitToMenu(),
     )
 
@@ -262,9 +262,22 @@ export class Game {
     const fireHeld = stick.active
     const released = !fireHeld && this.fireHeldPrev
     this.fireHeldPrev = fireHeld
+    const superPressed = this.input.consumeSuper()
+    const superQueued = superPressed.queued
+    const superAngle = superPressed.angle
 
     let aim = this.lastAim
-    if (stick.active && stick.mag > 0.18) {
+    const stickAiming = stick.active && stick.mag > 0.18
+    if (superQueued) {
+      if (superAngle !== null) {
+        aim = superAngle
+      } else if (this.sim.phase === 'playing') {
+        const target = this.sim.closestEnemy(p)
+        if (target) {
+          aim = Math.atan2(target.pos.y - p.pos.y, target.pos.x - p.pos.x)
+        }
+      }
+    } else if (stickAiming) {
       aim = Math.atan2(stick.dy, stick.dx)
     }
     if (tap && this.sim.phase === 'playing') {
@@ -277,7 +290,6 @@ export class Game {
 
     p.aiming = fireHeld
     const fireOnce = (released || tap) && this.sim.phase === 'playing'
-    const superQueued = this.input.consumeSuper()
     return {
       moveX: mv.x,
       moveY: mv.y,

@@ -552,6 +552,15 @@ body {
   background: radial-gradient(circle at 35% 30%, #ffe08a 0%, #ff9d3f 100%);
 }
 
+.joy-base.super {
+  border-color: rgba(255, 216, 107, 0.55);
+  background: rgba(255, 190, 90, 0.1);
+}
+
+.joy-base.super .joy-knob {
+  background: radial-gradient(circle at 35% 30%, #fff3c9 0%, #ff9d3f 100%);
+}
+
 .joy-base.hidden {
   opacity: 0;
 }

@@ -321,6 +321,60 @@ describe('Player aims and fires on release', () => {
   })
 })
 
+describe('Player super aim', () => {
+  it('aims the super at the closest enemy when the button is tapped', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    expect(player.alive).toBe(true)
+    player.chargeSuper(1)
+
+    let closest: Brawler | null = null
+    let bestD = Infinity
+    for (const b of game.brawlers) {
+      if (b === player || !b.alive) continue
+      const d = Math.hypot(b.pos.x - player.pos.x, b.pos.y - player.pos.y)
+      if (d < bestD) {
+        bestD = d
+        closest = b
+      }
+    }
+    expect(closest).not.toBeNull()
+
+    const btn = document.querySelector('.super-btn') as HTMLButtonElement
+    btn.dispatchEvent(makePointerEvent('pointerdown', { clientX: 0, clientY: 0 }))
+    window.dispatchEvent(makePointerEvent('pointerup', { pointerId: 1 }))
+    update(1 / 60)
+
+    expect(player.superCharge).toBe(0)
+    const expected = Math.atan2(closest!.pos.y - player.pos.y, closest!.pos.x - player.pos.x)
+    expect(player.aimAngle).toBeCloseTo(expected, 2)
+  })
+
+  it('aims the super along the drag when the button is held and dragged', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('blaster', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    player.chargeSuper(1)
+
+    const btn = document.querySelector('.super-btn') as HTMLButtonElement
+    btn.dispatchEvent(makePointerEvent('pointerdown', { clientX: 0, clientY: 0 }))
+    window.dispatchEvent(makePointerEvent('pointermove', { pointerId: 1, clientX: 40, clientY: 40 }))
+    update(1 / 60)
+    expect(player.aiming).toBe(false)
+
+    window.dispatchEvent(makePointerEvent('pointerup', { pointerId: 1 }))
+    update(1 / 60)
+
+    expect(player.superCharge).toBe(0)
+    expect(player.aimAngle).toBeCloseTo(Math.PI / 4, 2)
+  })
+})
+
 describe('Tank melee attack', () => {
   it('damages enemies inside the swing arc', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5)

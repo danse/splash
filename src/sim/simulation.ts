@@ -355,9 +355,9 @@ export class Simulation {
               b,
               angle,
               def.projectileSpeed * 1.35,
-              def.projectileRange * 1.1,
+              def.superRange,
               def.superDamage,
-              def.projectileSize * 1.5,
+              def.superSize,
               def.accent,
               friendly,
               true,
@@ -369,7 +369,7 @@ export class Simulation {
       }
       case 'boulder': {
         this.projectiles.push(
-          spawnProjectile(b, b.aimAngle, def.projectileSpeed * 0.55, def.projectileRange * 1.3, def.superDamage, 42, def.accent, friendly, true, 5),
+          spawnProjectile(b, b.aimAngle, def.projectileSpeed * 0.55, def.superRange, def.superDamage, def.superSize, def.accent, friendly, true, 5),
         )
         this.fx.ring(b.pos.x, b.pos.y, def.accent, 90)
         break

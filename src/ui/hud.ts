@@ -1,3 +1,7 @@
+import { Input } from '../core/input'
+
+const MAX_SUPER_REACH = 62
+
 export class Hud {
   root: HTMLElement
   private killsEl: HTMLElement
@@ -7,10 +11,19 @@ export class Hud {
   private healthText: HTMLElement
   private superBar: HTMLElement
   private superBtn: HTMLButtonElement
+  private superJoy: HTMLDivElement
+  private superKnob: HTMLDivElement
   private exitBtn: HTMLElement
   private feed: HTMLElement
+  private input: Input
+  private superPressId = -1
+  private superPressX = 0
+  private superPressY = 0
+  private superDragged = false
+  private superAngle = 0
 
-  constructor(onSuper: () => void, onExit: () => void) {
+  constructor(input: Input, onExit: () => void) {
+    this.input = input
     this.root = document.createElement('div')
     this.root.id = 'hud'
     this.root.style.display = 'none'
@@ -51,15 +64,65 @@ export class Hud {
     this.superBtn = document.createElement('button')
     this.superBtn.className = 'super-btn'
     this.superBtn.textContent = '★'
-    this.superBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault()
-      onSuper()
-    })
+    this.superBtn.addEventListener('pointerdown', this.onSuperDown)
     bottom.appendChild(this.superBtn)
+
+    this.superJoy = document.createElement('div')
+    this.superJoy.className = 'joy-base super hidden'
+    this.superKnob = document.createElement('div')
+    this.superKnob.className = 'joy-knob'
+    this.superJoy.appendChild(this.superKnob)
+    this.root.appendChild(this.superJoy)
 
     this.feed = document.createElement('div')
     this.feed.className = 'kill-feed'
     this.root.appendChild(this.feed)
+  }
+
+  private onSuperDown = (e: PointerEvent): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    const r = this.superBtn.getBoundingClientRect()
+    this.superPressId = e.pointerId
+    this.superPressX = r.left + r.width / 2
+    this.superPressY = r.top + r.height / 2
+    this.superDragged = false
+    this.superAngle = 0
+    this.input.beginSuperAim()
+    window.addEventListener('pointermove', this.onSuperMove)
+    window.addEventListener('pointerup', this.onSuperUp)
+    window.addEventListener('pointercancel', this.onSuperUp)
+  }
+
+  private onSuperMove = (e: PointerEvent): void => {
+    if (e.pointerId !== this.superPressId) return
+    const dx = e.clientX - this.superPressX
+    const dy = e.clientY - this.superPressY
+    const dist = Math.hypot(dx, dy)
+    if (dist > 10) this.superDragged = true
+    const angle = Math.atan2(dy, dx)
+    this.superAngle = angle
+    this.input.aimSuper(angle)
+    const kx = (dx / MAX_SUPER_REACH) * 64
+    const ky = (dy / MAX_SUPER_REACH) * 64
+    this.superKnob.style.transform = `translate3d(calc(-50% + ${kx}px), calc(-50% + ${ky}px), 0)`
+    this.superJoy.classList.remove('hidden')
+    this.superJoy.style.left = `${this.superPressX - 64}px`
+    this.superJoy.style.top = `${this.superPressY - 64}px`
+  }
+
+  private onSuperUp = (e: PointerEvent): void => {
+    if (e.pointerId !== this.superPressId) return
+    this.superJoy.classList.add('hidden')
+    this.superKnob.style.transform = ''
+    window.removeEventListener('pointermove', this.onSuperMove)
+    window.removeEventListener('pointerup', this.onSuperUp)
+    window.removeEventListener('pointercancel', this.onSuperUp)
+    this.superPressId = -1
+    this.input.endSuperAim()
+    if (e.type === 'pointercancel') return
+    if (this.superDragged) this.input.queueSuper(this.superAngle)
+    else this.input.queueSuper()
   }
 
   show(): void {
