@@ -73,52 +73,6 @@ function playSound(name: string, vol = 0.5, delay = 0, rate = 1): void {
   src.start(ctx.currentTime + delay)
 }
 
-function tone(
-  freq: number,
-  dur: number,
-  type: OscillatorType,
-  vol: number,
-  slideTo?: number,
-  delay = 0,
-): void {
-  if (!ctx || !master || muted) return
-  const t0 = ctx.currentTime + delay
-  const osc = ctx.createOscillator()
-  const g = ctx.createGain()
-  osc.type = type
-  osc.frequency.setValueAtTime(freq, t0)
-  if (slideTo !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t0 + dur)
-  g.gain.setValueAtTime(vol, t0)
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
-  osc.connect(g)
-  g.connect(master)
-  osc.start(t0)
-  osc.stop(t0 + dur + 0.02)
-}
-
-function noise(dur: number, vol: number, filterFreq: number, slideTo?: number, delay = 0): void {
-  if (!ctx || !master || muted) return
-  const t0 = ctx.currentTime + delay
-  const len = Math.floor(ctx.sampleRate * dur)
-  const buffer = ctx.createBuffer(1, len, ctx.sampleRate)
-  const data = buffer.getChannelData(0)
-  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1
-  const src = ctx.createBufferSource()
-  src.buffer = buffer
-  const filter = ctx.createBiquadFilter()
-  filter.type = 'lowpass'
-  filter.frequency.setValueAtTime(filterFreq, t0)
-  if (slideTo !== undefined) filter.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur)
-  const g = ctx.createGain()
-  g.gain.setValueAtTime(vol, t0)
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
-  src.connect(filter)
-  filter.connect(g)
-  g.connect(master)
-  src.start(t0)
-  src.stop(t0 + dur)
-}
-
 export const sfx = {
   shoot(colorIdx = 0): void {
     playSound('shoot', 0.45, 0, 1 + colorIdx * 0.1)
@@ -134,10 +88,6 @@ export const sfx = {
   },
   hurt(): void {
     playSound('hurt', 0.4)
-  },
-  dash(): void {
-    noise(0.32, 0.28, 5000, 300)
-    tone(260, 0.3, 'sawtooth', 0.12, 520)
   },
   pickup(): void {
     playSound('pickup', 0.4)

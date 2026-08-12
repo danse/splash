@@ -115,44 +115,10 @@ export function inBush(brawler: Brawler, arena: Arena): boolean {
   return false
 }
 
-function drawBrawlerShape(ctx: CanvasRenderingContext2D, b: Brawler): void {
-  const base = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.4, b.r * 0.15, 0, 0, b.r * 1.05)
-  base.addColorStop(0, lighten(b.def.color, 55))
-  base.addColorStop(0.55, b.def.color)
-  base.addColorStop(1, shade(b.def.color, -35))
-
-  ctx.beginPath()
-  ctx.arc(0, 0, b.r, 0, TAU)
-  ctx.fillStyle = base
-  ctx.fill()
-
-  ctx.lineWidth = 3
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)'
-  ctx.stroke()
-
-  if (b.flash > 0) {
-    ctx.beginPath()
-    ctx.arc(0, 0, b.r, 0, TAU)
-    ctx.fillStyle = `rgba(255,255,255,${(b.flash / 0.14) * 0.8})`
-    ctx.fill()
-  }
-
-  ctx.fillStyle = 'rgba(0,0,0,0.55)'
-  ctx.beginPath()
-  ctx.arc(-b.r * 0.45, -b.r * 0.3, 4.5, 0, TAU)
-  ctx.arc(b.r * 0.2, -b.r * 0.3, 4.5, 0, TAU)
-  ctx.fill()
-  ctx.fillStyle = '#fff'
-  ctx.beginPath()
-  ctx.arc(-b.r * 0.45, -b.r * 0.3, 1.8, 0, TAU)
-  ctx.arc(b.r * 0.2, -b.r * 0.3, 1.8, 0, TAU)
-  ctx.fill()
-}
-
 function drawBrawlerSprite(ctx: CanvasRenderingContext2D, b: Brawler, sprite: Sprite): void {
   const def = b.def
   const firing = b.fireFacingTimer > 0 && def.fireSprite
-  const bodySprite = firing ? (getSprite(def.fireSprite!) ?? sprite) : sprite
+  const bodySprite = firing ? getSprite(def.fireSprite!)! : sprite
   const dw = def.spriteScale
   const dh = (dw * bodySprite.h) / bodySprite.w
   if (def.barrelSprite) {
@@ -232,12 +198,7 @@ export function drawBrawler(
   ctx.save()
   ctx.translate(b.pos.x, b.pos.y)
 
-  const sprite = getSprite(b.def.sprite)
-  if (sprite) {
-    drawBrawlerSprite(ctx, b, sprite)
-  } else {
-    drawBrawlerShape(ctx, b)
-  }
+  drawBrawlerSprite(ctx, b, getSprite(b.def.sprite)!)
 
   if (b.def.melee && b.swingT > 0) {
     drawMeleeSwing(ctx, b)
@@ -445,21 +406,4 @@ export function drawPickup(ctx: CanvasRenderingContext2D, p: Pickup): void {
     ctx.fillText('+', 0, 1)
   }
   ctx.restore()
-}
-
-function lighten(hex: string, amt: number): string {
-  const { r, g, b } = parse(hex)
-  return `rgb(${Math.min(255, r + amt)},${Math.min(255, g + amt)},${Math.min(255, b + amt)})`
-}
-
-function shade(hex: string, amt: number): string {
-  const { r, g, b } = parse(hex)
-  return `rgb(${Math.max(0, r + amt)},${Math.max(0, g + amt)},${Math.max(0, b + amt)})`
-}
-
-function parse(hex: string): { r: number; g: number; b: number } {
-  let h = hex.replace('#', '')
-  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]
-  const n = parseInt(h, 16)
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
 }

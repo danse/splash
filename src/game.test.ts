@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import { Game, MatchResult } from './game'
 import { Camera } from './core/camera'
 import type { Brawler } from './entities/brawler'
+import { setSpriteForTest, resetSpritesForTest } from './render/sprites'
 
 function stubCtx(): CanvasRenderingContext2D {
   const target: Record<string, unknown> = {}
@@ -64,10 +65,17 @@ function touchUp(id = 1): void {
 beforeEach(() => {
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => stubCtx()) as never)
   document.body.innerHTML = '<div id="app"><canvas id="game-canvas"></canvas></div>'
+  setSpriteForTest('blaster', 36, 43)
+  setSpriteForTest('blaster-fire', 52, 43)
+  setSpriteForTest('charger', 33, 43)
+  setSpriteForTest('charger-fire', 49, 43)
+  setSpriteForTest('tank', 75, 70)
+  setSpriteForTest('tank-barrel', 16, 50)
 })
 
 afterEach(() => {
   vi.restoreAllMocks()
+  resetSpritesForTest()
 })
 
 describe('Game match end', () => {

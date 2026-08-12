@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, afterEach } from 'vitest'
+import { describe, expect, it, afterEach, beforeEach } from 'vitest'
 import { BRAWLER_DEFS, Brawler } from './entities/brawler'
 import { drawBrawler, drawAimPointer } from './render'
 import { setSpriteForTest, resetSpritesForTest } from './render/sprites'
@@ -58,6 +58,13 @@ const TANK_RANGE = 115
 const TANK_ARC = 1.9
 
 describe('melee rendering geometry', () => {
+  beforeEach(() => {
+    setSpriteForTest('tank', 75, 70)
+    setSpriteForTest('tank-barrel', 16, 50)
+    setSpriteForTest('blaster', 36, 43)
+    setSpriteForTest('charger', 33, 43)
+  })
+
   it('draws the swing at the brawler pivot, not offset', () => {
     const { ctx, translateCalls } = makeRecorder()
     const tank = new Brawler(BRAWLER_DEFS.tank, 400, 300)
@@ -210,16 +217,6 @@ describe('sprite rendering', () => {
     const gunDraw = drawImages.find((d) => d.dw === BRAWLER_DEFS.blaster.spriteScale)
     expect(gunDraw).toBeDefined()
     expect(gunDraw!.dh).toBeCloseTo(43, 0)
-  })
-
-  it('falls back to shapes when no sprite is loaded', () => {
-    const { ctx, arcs, drawImages } = makeRecorder()
-    const blaster = new Brawler(BRAWLER_DEFS.blaster, 200, 200)
-
-    drawBrawler(ctx, blaster, emptyArena, { showHealthBars: false })
-
-    expect(drawImages).toHaveLength(0)
-    expect(arcs.filter(([, , r]) => approx(r, blaster.r)).length).toBeGreaterThan(0)
   })
 
   it('draws the melee swing on top of a tank sprite', () => {
