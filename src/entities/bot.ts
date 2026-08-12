@@ -79,6 +79,25 @@ export class BotBrain {
     time: number,
   ): BrawlerControl {
     const target = this.pickTarget(self, all, dt)
+    const ctrl = this.computeMovement(self, target, walls, time, dt)
+
+    return {
+      moveX: ctrl.moveX,
+      moveY: ctrl.moveY,
+      moveMag: ctrl.moveMag,
+      aimAngle: ctrl.aimAngle,
+      firing: ctrl.firing,
+      superQueued: ctrl.superQueued,
+    }
+  }
+
+  private computeMovement(
+    self: Brawler,
+    target: Brawler | null,
+    walls: Rect[],
+    time: number,
+    dt: number,
+  ): { moveX: number; moveY: number; moveMag: number; firing: boolean; superQueued: boolean; aimAngle: number } {
 
     this.wanderTimer -= dt
     if (this.wanderTimer <= 0) {
