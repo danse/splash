@@ -68,14 +68,12 @@ export class BotBrain {
     }
 
     this.wanderTimer -= dt
-    if (!target || this.wanderTimer <= 0) {
-      if (this.wanderTimer <= 0) {
-        this.wanderTarget = {
-          x: rand(140, 2260),
-          y: rand(140, 2260),
-        }
-        this.wanderTimer = rand(2, 4.5)
+    if (this.wanderTimer <= 0) {
+      this.wanderTarget = {
+        x: rand(140, 2260),
+        y: rand(140, 2260),
       }
+      this.wanderTimer = rand(2, 4.5)
     }
 
     let moveX = 0

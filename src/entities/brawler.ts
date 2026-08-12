@@ -216,11 +216,7 @@ export class Brawler {
       this.triggerSuper()
     }
 
-    if (ctrl.fireOnce && this.fireCd <= 0 && !this.dash.active) {
-      this.firePressed = true
-      this.fireCd = 1 / this.def.fireRate
-    }
-    if (ctrl.firing && this.fireCd <= 0 && !this.dash.active) {
+    if ((ctrl.fireOnce || ctrl.firing) && this.fireCd <= 0 && !this.dash.active) {
       this.firePressed = true
       this.fireCd = 1 / this.def.fireRate
     }

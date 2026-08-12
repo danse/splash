@@ -214,17 +214,13 @@ export class Simulation {
       }
       bot.update(dt, ctrl)
     }
-    if (this.player) {
-      if (this.player.alive) {
-        if (playerControl) {
-          const ctrl = playerControl()
-          this.player.update(dt, ctrl)
-        } else {
-          this.player.update(dt, idleControl(this.player))
-        }
+    const p = this.player
+    if (p) {
+      if (!p.alive) {
+        p.aiming = false
+        p.update(dt, idleControl(p))
       } else {
-        this.player.aiming = false
-        this.player.update(dt, idleControl(this.player))
+        p.update(dt, playerControl ? playerControl() : idleControl(p))
       }
     }
   }

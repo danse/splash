@@ -268,23 +268,17 @@ export class Game {
 
     let aim = this.lastAim
     const stickAiming = stick.active && stick.mag > 0.18
+    const aimAtClosest = (): number | null => {
+      const target = this.sim.closestEnemy(p)
+      return target ? Math.atan2(target.pos.y - p.pos.y, target.pos.x - p.pos.x) : null
+    }
     if (superQueued) {
-      if (superAngle !== null) {
-        aim = superAngle
-      } else if (this.sim.phase === 'playing') {
-        const target = this.sim.closestEnemy(p)
-        if (target) {
-          aim = Math.atan2(target.pos.y - p.pos.y, target.pos.x - p.pos.x)
-        }
-      }
+      aim = superAngle ?? (this.sim.phase === 'playing' ? (aimAtClosest() ?? aim) : aim)
     } else if (stickAiming) {
       aim = Math.atan2(stick.dy, stick.dx)
     }
     if (tap && this.sim.phase === 'playing') {
-      const target = this.sim.closestEnemy(p)
-      if (target) {
-        aim = Math.atan2(target.pos.y - p.pos.y, target.pos.x - p.pos.x)
-      }
+      aim = aimAtClosest() ?? aim
     }
     this.lastAim = aim
 
@@ -394,15 +388,13 @@ export class Game {
       if (inBush(b, this.sim.arena)) hidden.push(b)
       else visible.push(b)
     }
-    for (const b of hidden) {
+    const renderBrawler = (b: Brawler): void => {
       if (b.aiming) drawAimPointer(ctx, b, this.sim.arena)
       drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true, time: this.sim.time })
     }
+    for (const b of hidden) renderBrawler(b)
     drawBushes(ctx, this.sim.arena)
-    for (const b of visible) {
-      if (b.aiming) drawAimPointer(ctx, b, this.sim.arena)
-      drawBrawler(ctx, b, this.sim.arena, { walls: this.sim.arena.walls, showHealthBars: true, time: this.sim.time })
-    }
+    for (const b of visible) renderBrawler(b)
 
     for (const p of this.sim.projectiles) drawProjectile(ctx, p)
 
