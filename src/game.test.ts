@@ -586,6 +586,52 @@ describe('Super charges from dealing damage', () => {
   })
 })
 
+describe('Kill counting', () => {
+  it('increments kills when the player lands a killing blow', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('tank', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    const enemy = game.bots[0]
+    enemy.pos.x = player.pos.x + 90
+    enemy.pos.y = player.pos.y
+    enemy.hp = 100
+    expect(player.kills).toBe(0)
+
+    touchDown(800, 500, 2)
+    touchMove(860, 500, 2)
+    update(1 / 60)
+    touchUp(2)
+    update(1 / 60)
+
+    expect(enemy.alive).toBe(false)
+    expect(player.kills).toBe(1)
+  })
+
+  it('does not increment kills for non-lethal damage', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('tank', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    const enemy = game.bots[0]
+    enemy.pos.x = player.pos.x + 90
+    enemy.pos.y = player.pos.y
+    const hpBefore = enemy.hp
+
+    touchDown(800, 500, 2)
+    touchMove(860, 500, 2)
+    update(1 / 60)
+    touchUp(2)
+    update(1 / 60)
+
+    expect(enemy.hp).toBeLessThan(hpBefore)
+    expect(enemy.alive).toBe(true)
+    expect(player.kills).toBe(0)
+  })
+})
+
 function setViewport(w: number, h: number, dpr = 1): void {
   Object.defineProperty(window, 'innerWidth', { value: w, configurable: true })
   Object.defineProperty(window, 'innerHeight', { value: h, configurable: true })
