@@ -51,7 +51,7 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     spread: 0,
     superType: 'storm',
     superDamage: 540,
-    superChargePerHit: 0.14,
+    superChargePerHit: 0.09,
     superRange: 660,
     superSize: 19.5,
     sprite: 'blaster',
@@ -76,7 +76,7 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     spread: 0,
     superType: 'dash',
     superDamage: 640,
-    superChargePerHit: 0.16,
+    superChargePerHit: 0.1,
     superRange: 442,
     superSize: 16.5,
     sprite: 'charger',
@@ -104,7 +104,7 @@ export const BRAWLER_DEFS: Record<string, BrawlerDef> = {
     meleeArc: 1.9,
     superType: 'boulder',
     superDamage: 900,
-    superChargePerHit: 0.11,
+    superChargePerHit: 0.07,
     superRange: 624,
     superSize: 42,
     sprite: 'tank',
@@ -184,7 +184,7 @@ export class Brawler {
     if (!this.alive) return
     this.hp -= dmg
     this.flash = 0.14
-    this.chargeSuper(dmg * 0.22)
+    this.chargeSuper(dmg * 0.12)
     if (this.hp <= 0) {
       this.hp = 0
       this.alive = false
