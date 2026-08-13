@@ -125,6 +125,7 @@ export interface DashState {
 
 export const SWING_DURATION = 0.4
 const ANGLE_LERP_BASE = 0.0001
+const DAMAGE_TAKEN_SUPER_CHARGE = 0.08
 
 export interface BrawlerControl {
   moveX: number
@@ -184,7 +185,7 @@ export class Brawler {
     if (!this.alive) return
     this.hp -= dmg
     this.flash = 0.14
-    this.chargeSuper(dmg * 0.12)
+    this.chargeSuper(DAMAGE_TAKEN_SUPER_CHARGE)
     if (this.hp <= 0) {
       this.hp = 0
       this.alive = false

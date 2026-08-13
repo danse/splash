@@ -322,7 +322,7 @@ export class Simulation {
   ): void {
     target.takeDamage(dmg)
     target.lastHitBy = attacker
-    attacker.chargeSuper(dmg * attacker.def.superChargePerHit)
+    attacker.chargeSuper(attacker.def.superChargePerHit)
     target.pos.x += Math.cos(opts.knockDir) * opts.knockback
     target.pos.y += Math.sin(opts.knockDir) * opts.knockback
     this.keepInArena(target)

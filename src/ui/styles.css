@@ -92,6 +92,7 @@ body {
   letter-spacing: 0.5px;
   color: #5b6b8c;
   user-select: none;
+  font-family: monospace;
 }
 
 .btn {

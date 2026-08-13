@@ -56,6 +56,25 @@ describe('Brawler stats', () => {
   })
 })
 
+describe('Brawler super charge', () => {
+  it('does not reach a ready super from a single hit taken', () => {
+    b.takeDamage(100)
+    expect(b.superReady).toBe(false)
+  })
+
+  it('reaches a ready super after several hits taken', () => {
+    for (let i = 0; i < 13; i++) b.takeDamage(100)
+    expect(b.superReady).toBe(true)
+  })
+
+  it('does not charge super at all from a killing blow on a dead brawler', () => {
+    b.takeDamage(b.maxHp)
+    const before = b.superCharge
+    b.takeDamage(100)
+    expect(b.superCharge).toBe(before)
+  })
+})
+
 describe('Brawler movement', () => {
   it('moves by speed over dt', () => {
     b.update(1 / 60, idle({ moveX: 1, moveY: 0, moveMag: 1 }))

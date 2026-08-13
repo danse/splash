@@ -537,6 +537,55 @@ describe('Tank melee attack', () => {
   })
 })
 
+describe('Super charges from dealing damage', () => {
+  it('does not fully charge super from a single landed hit', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('tank', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    const enemy = game.bots[0]
+    enemy.pos.x = player.pos.x + 90
+    enemy.pos.y = player.pos.y
+
+    touchDown(800, 500, 2)
+    touchMove(860, 500, 2)
+    update(1 / 60)
+    touchUp(2)
+    update(1 / 60)
+
+    expect(enemy.hp).toBeLessThan(enemy.maxHp)
+    expect(player.superCharge).toBeGreaterThan(0)
+    expect(player.superReady).toBe(false)
+  })
+
+  it('charges a full super after several landed hits', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { game, update } = makeGame()
+    game.startMatch('tank', 'practice')
+    for (let i = 0; i < 210; i++) update(1 / 60)
+    const player = game.player
+    const enemy = game.bots[1]
+    enemy.pos.x = player.pos.x + 90
+    enemy.pos.y = player.pos.y
+
+    for (let i = 0; i < 15; i++) {
+      enemy.pos.x = player.pos.x + 90
+      enemy.pos.y = player.pos.y
+      touchDown(800, 500, 2)
+      touchMove(860, 500, 2)
+      update(1 / 60)
+      touchUp(2)
+      update(1 / 60)
+      enemy.hp = enemy.maxHp
+      player.hp = player.maxHp
+      for (let j = 0; j < 40; j++) update(1 / 60)
+    }
+
+    expect(player.superReady).toBe(true)
+  })
+})
+
 function setViewport(w: number, h: number, dpr = 1): void {
   Object.defineProperty(window, 'innerWidth', { value: w, configurable: true })
   Object.defineProperty(window, 'innerHeight', { value: h, configurable: true })
