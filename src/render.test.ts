@@ -54,7 +54,7 @@ const eps = 1e-6
 const approx = (a: number, b: number) => Math.abs(a - b) < eps
 const expectNear = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(eps)
 
-const TANK_RANGE = 115
+const TANK_RANGE = 135
 const TANK_ARC = 1.9
 
 describe('melee rendering geometry', () => {
