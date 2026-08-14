@@ -1,8 +1,8 @@
-import { Brawler, BrawlerControl } from './brawler'
+import { Brawler, BrawlerControl, BRAWLER_DEFS } from './brawler'
 import { Rect, circleRectCollide } from '../world/collision'
 import { clamp, dist, rand, TAU } from '../core/math'
 
-const BRAWLER_IDS = ['blaster', 'charger', 'tank']
+const BRAWLER_IDS = Object.keys(BRAWLER_DEFS)
 
 export function randomBrawlerId(): string {
   return BRAWLER_IDS[Math.floor(Math.random() * BRAWLER_IDS.length)]

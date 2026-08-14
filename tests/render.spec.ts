@@ -49,7 +49,7 @@ test.describe('reference size: 1280x720 landscape (touch)', () => {
     for (const label of ['Easy', 'Medium', 'Hard']) {
       await expect(page.getByRole('button', { name: label })).toBeVisible()
     }
-    await expect(page.locator('.brawler-card')).toHaveCount(3)
+    await expect(page.locator('.brawler-card')).toHaveCount(12)
 
     const fit = await page.evaluate(() => {
       const s = document.querySelector('.screen:not(.hidden)') as HTMLElement

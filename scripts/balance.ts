@@ -5,13 +5,14 @@ import { dirname, join } from 'node:path'
 import { cpus } from 'node:os'
 import { aggregateMatchups, archetypeOverview, ablationOverview, type MatchupStats } from '../src/sim/aggregate'
 import type { DuelOutcome } from '../src/sim/metrics'
+import { BRAWLER_DEFS } from '../src/entities/brawler'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(SCRIPT_DIR, '..')
 const WORKER = join(SCRIPT_DIR, 'balance.worker.ts')
 const VITE_NODE = join(REPO_ROOT, 'node_modules', '.bin', 'vite-node')
 
-const ARCHETYPES = ['blaster', 'charger', 'tank']
+const ARCHETYPES = Object.keys(BRAWLER_DEFS)
 const ABLATIONS = ['turret', 'nosuper', 'noretreat', 'perfectaim']
 
 interface CliOptions {

@@ -41,3 +41,4 @@ blob-report/
 # TypeScript
 *.tsbuildinfo
 TAGS
+session.dot

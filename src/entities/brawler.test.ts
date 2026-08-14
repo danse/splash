@@ -1,6 +1,34 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { Brawler, BRAWLER_DEFS, BrawlerControl } from './brawler'
 
+const ARCHETYPE_ROSTER = [
+  'blaster',
+  'charger',
+  'tank',
+  'sniper',
+  'gunner',
+  'ranger',
+  'scout',
+  'assassin',
+  'bruiser',
+  'juggernaut',
+  'demolisher',
+  'raider',
+]
+
+describe('Archetype roster', () => {
+  it('defines a complete brawler for every archetype', () => {
+    for (const id of ARCHETYPE_ROSTER) {
+      const def = BRAWLER_DEFS[id]
+      expect(def, `missing def for ${id}`).toBeDefined()
+      expect(def.sprite, `missing sprite for ${id}`).toBeTruthy()
+      expect(def.spriteScale, `missing spriteScale for ${id}`).toBeGreaterThan(0)
+      expect(def.superType, `missing superType for ${id}`).toBeTruthy()
+      expect(def.superDamage, `missing superDamage for ${id}`).toBeGreaterThan(0)
+    }
+  })
+})
+
 const idle = (over: Partial<BrawlerControl> = {}): BrawlerControl => ({
   moveX: 0,
   moveY: 0,

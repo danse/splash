@@ -1,6 +1,6 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { Brawler, BRAWLER_DEFS } from './brawler'
-import { BotBrain } from './bot'
+import { BotBrain, randomBrawlerId } from './bot'
 import { Rect } from '../world/collision'
 
 let bot: Brawler
@@ -103,5 +103,16 @@ describe('BotBrain', () => {
     const enemy = new Brawler(BRAWLER_DEFS.blaster, 100 + 80, 100)
     const ctrl = tankBrain.think(tank, [tank, enemy], walls(), 1 / 60, 0)
     expect(ctrl.firing).toBe(true)
+  })
+})
+
+describe('randomBrawlerId', () => {
+  it('can pick every archetype from the roster', () => {
+    const seen = new Set<string>()
+    for (let i = 0; i < 12; i++) {
+      vi.spyOn(Math, 'random').mockReturnValue((i + 0.5) / 12)
+      seen.add(randomBrawlerId())
+    }
+    expect(seen.size).toBe(12)
   })
 })
